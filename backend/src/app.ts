@@ -1,0 +1,14 @@
+import express, { Request, Response } from 'express';
+import cors from 'cors';
+
+const app = express();
+
+app.use(cors());
+app.use(express.json());
+
+// Health Check Route
+app.get('/health', (req: Request, res: Response) => {
+  res.status(200).json({ status: 'OK', timestamp: new Date().toISOString() });
+});
+
+export default app;
