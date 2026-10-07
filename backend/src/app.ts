@@ -1,14 +1,12 @@
-import express, { Request, Response } from 'express';
-import cors from 'cors';
+"use strict";
 
-const app = express();
+import express,{ Request , Response} from "express";
 
-app.use(cors());
-app.use(express.json());
+const appserver = express();
 
-// Health Check Route
-app.get('/health', (req: Request, res: Response) => {
-  res.status(200).json({ status: 'OK', timestamp: new Date().toISOString() });
+appserver.use(express.json());
+
+appserver.get('/health' , (req: Request, res: Response) => {
+    res.status(200).json({ message: ' oki Server is healthy' });
 });
-
-export default app;
+export default appserver;
