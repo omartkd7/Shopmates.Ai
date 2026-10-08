@@ -7,7 +7,7 @@
 
 <p align="center">
   <a href="https://skillicons.dev">
-    <img src="https://skillicons.dev/icons?i=react,ts,nodejs,expressjs,postgres,prisma,docker,git,github,postman,figma,vscode&perline=6" alt="Stack technique" />
+    <img src="https://skillicons.dev/icons?i=react,ts,nodejs,expressjs,postgres,sequelize,docker,git,github,postman,figma,vscode&perline=6" alt="Stack technique" />
   </a>
 </p>
 
@@ -50,6 +50,10 @@
 Le client discute en langage naturel (français ou darija) : il pose ses questions sur les produits, la livraison ou les retours, **passe sa commande et la suit** — sans qu'aucun humain n'intervienne, 24h/24.
 
 L'application est **multi-tenant** : chaque donnée est rattachée à un `storeId`, donc une même instance peut servir plusieurs boutiques. Le projet est ainsi extensible en véritable produit SaaS.
+
+### Dernière mise à jour
+
+La base du backend est maintenant structurée autour d'Express + TypeScript + PostgreSQL + pgvector + Sequelize, avec les modèles métier dans `backend/src/models` et le démarrage de l'API dans `backend/src/server.ts`.
 
 > 🎓 Projet Fil Rouge — *Mobile Augmented AI* · Deadline : **24 octobre 2026**
 
@@ -177,7 +181,7 @@ L'agent **refuse systématiquement** : modifier un prix, accorder une remise ou 
 |---|---|
 | **Mobile** | React Native · Expo · Expo Router · Zustand · Axios · Expo SecureStore |
 | **Backend** | Node.js · Express · TypeScript · architecture MVC/Clean |
-| **Base de données** | PostgreSQL 16 · extension **pgvector** · ORM Prisma |
+| **Base de données** | PostgreSQL 16 · extension **pgvector** · ORM Sequelize |
 | **IA** | API LLM (Claude / OpenAI) · embeddings 1536 dim. · function calling · streaming SSE |
 | **Interopérabilité** | **MCP** (Model Context Protocol) · n8n *(bonus)* |
 | **Sécurité** | JWT · bcrypt · Zod · Helmet · express-rate-limit |
@@ -203,29 +207,20 @@ flowchart LR
 ```
 shopmate/
 ├── backend/
-│   ├── prisma/
-│   │   └── schema.prisma              # modèle multi-tenant
-│   ├── sql/
-│   │   └── 001_init_pgvector.sql      # extension + index HNSW
 │   ├── src/
-│   │   ├── config/                    # env, db, logger
-│   │   ├── middlewares/               # auth, tenant, errors, rateLimit, validate
-│   │   ├── modules/
-│   │   │   ├── auth/                  # register, login, refresh, logout
-│   │   │   ├── products/
-│   │   │   ├── orders/
-│   │   │   ├── customers/
-│   │   │   ├── rag/                   # chunking, embeddings, retrieval
-│   │   │   └── agent/                 # prompt système, tools, chat SSE, guardrails, audit
-│   │   ├── mcp/                       # client + serveur d'outils MCP
-│   │   ├── app.ts
-│   │   └── server.ts
-│   ├── Dockerfile
+│   │   ├── config/                    # environnement, base de données, logger
+│   │   ├── models/                    # Store, Product, Order, User, etc.
+│   │   ├── app.ts                    # initialisation Express
+│   │   ├── server.ts                 # démarrage du serveur
+│   │   └── ...
 │   ├── docker-compose.yml
+│   ├── package.json
 │   └── .env.example
 ├── mobile/                            # Expo Router, stores Zustand, écran chat SSE
-├── n8n/                               # workflows (bonus)
-└── docs/                              # cahier des charges, UML, journal de prompts
+├── docs/                              # cahier des charges, UML, journal de prompts
+├── class-diagram.md                   # diagramme de classes
+├── AGENTS.md                          # règles d'assistance IA
+└── README.md
 ```
 
 ---
@@ -292,11 +287,11 @@ docker compose up -d db
 
 ```bash
 npm install
-npx prisma migrate dev            # crée les tables
-psql $DATABASE_URL -f sql/001_init_pgvector.sql   # extension pgvector + index HNSW
-npm run seed                      # boutique démo + ~15 produits + documents
+npx sequelize-cli db:migrate      # crée les tables
 npm run dev                       # → http://localhost:4000
 ```
+
+> La structure actuelle du backend est basée sur Sequelize + PostgreSQL + pgvector, avec les modèles dans `backend/src/models` et le serveur démarré depuis `backend/src/server.ts`.
 
 📖 Documentation API : `http://localhost:4000/api/docs`
 
@@ -413,7 +408,7 @@ Le `Dockerfile` est **multi-stage** (build puis runtime léger). Le `docker-comp
 | Semaine | Contenu | Statut |
 |:---:|---|:---:|
 | 1 | Cadrage, cahier des charges, UML/ERD, maquettes | 🟢 |
-| 2 | PostgreSQL + Prisma, migrations, seed, pgvector | ⚪ |
+| 2 | PostgreSQL + Sequelize, migrations, seed, pgvector | ⚪ |
 | 3 | Authentification JWT complète | ⚪ |
 | 4 | CRUD produits/commandes, Swagger + Postman | ⚪ |
 | 5 | Pipeline RAG (chunking, embeddings, recherche) | ⚪ |
