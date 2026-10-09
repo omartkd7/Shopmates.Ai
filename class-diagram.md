@@ -10,6 +10,9 @@
 ## 1. Domain classes (the database model)
 
 ```mermaid
+---
+id: d7d24c94-5870-4566-8093-70856fd1617d
+---
 classDiagram
     direction TB
 
