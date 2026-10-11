@@ -1,8 +1,10 @@
-import {DataTypes, Model,} from "sequelize";
+import {DataTypes, Model, Optional} from "sequelize";
 import sequelize from "../config/database";
 
 interface ProductData {
     
+
+  
  id: number;
   storeId: number;
   categoryId: number | null;
@@ -15,7 +17,7 @@ interface ProductData {
   updatedAt?: Date;
 }
 
-class Product extends Model<ProductData> {
+class Product extends Model<ProductData, Optional<ProductData, "id">> {
 
     declare id: number;
   declare storeId: number;

@@ -1,6 +1,6 @@
 
 
-import { DataTypes, Model,  } from "sequelize";
+import { DataTypes, Model, Optional } from "sequelize";
 import sequelize from "../config/database";
 
 interface StoreData {
@@ -12,7 +12,7 @@ interface StoreData {
 
 
 class Store
-  extends Model<StoreData>
+  extends Model<StoreData, Optional<StoreData, "id">>
 
   //  implements UserData
 

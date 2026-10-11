@@ -1,4 +1,4 @@
-import { DataTypes, Model, } from "sequelize";
+import { DataTypes, Model, Optional } from "sequelize";
 import sequelize from "../config/database";
 
 interface UserData {
@@ -12,7 +12,7 @@ interface UserData {
 }
 
 class User
-  extends Model<UserData>
+  extends Model<UserData, Optional<UserData, "id">>
 //  implements UserData
 {
   declare id: number;
@@ -61,6 +61,12 @@ User.init(
       {
         unique: true,
         fields: ["storeId", "email"],
+        name: "users_storeId_email_unique",
+      },
+      {
+        unique: true,
+        fields: ["storeId"],
+        name: "users_storeId_unique",
       },
     ],
   }

@@ -1,4 +1,8 @@
 import { DataTypes, Model, Optional } from "sequelize";
+import type pgvectorSequelize from "pgvector/sequelize" with {
+  "resolution-mode": "import",
+};
+require("pgvector/sequelize");
 import sequelize from "../config/database";
 
 interface ChunkData {
@@ -52,75 +56,8 @@ Chunk.init(
     },
 
     embedding: {
-      // Compatibility workaround for Sequelize v6.
-      // The actual PostgreSQL column is vector(1536).
-      type: DataTypes.TEXT,
+      type: DataTypes.VECTOR(1536),
       allowNull: true,
-
-      get() {
-        const raw = this.getDataValue("embedding") as unknown;
-
-        if (raw == null) {
-          return null;
-        }
-
-        if (Array.isArray(raw)) {
-          return raw as number[];
-        }
-
-        if (typeof raw !== "string") {
-          throw new Error("Unexpected embedding value returned by PostgreSQL");
-        }
-
-        const value = raw.trim();
-
-        if (!value.startsWith("[") || !value.endsWith("]")) {
-          throw new Error("Invalid pgvector embedding format");
-        }
-
-        const body = value.slice(1, -1).trim();
-
-        if (!body) {
-          return [];
-        }
-
-        return body.split(",").map((item) => {
-          const number = Number(item);
-
-          if (!Number.isFinite(number)) {
-            throw new Error("Invalid number in embedding");
-          }
-
-          return number;
-        });
-      },
-
-      set(value: number[] | null) {
-        if (value == null) {
-          this.setDataValue(
-            "embedding",
-            null as unknown as number[]
-          );
-          return;
-        }
-
-        if (
-          !Array.isArray(value) ||
-          value.length !== 1536 ||
-          !value.every(Number.isFinite)
-        ) {
-          throw new Error(
-            "Embedding must contain exactly 1536 finite numbers"
-          );
-        }
-
-        const vectorString = `[${value.join(",")}]`;
-
-        this.setDataValue(
-          "embedding",
-          vectorString as unknown as number[]
-        );
-      },
     },
   },
   {

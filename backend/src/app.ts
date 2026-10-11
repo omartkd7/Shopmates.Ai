@@ -2,10 +2,12 @@
 
 
 import express,{ Request , Response} from "express";
+import productsRouter from "./routes/products";
 
 const appserver = express();
 
 appserver.use(express.json());
+appserver.use("/api/products", productsRouter);
 
 appserver.get('/health' , (req: Request, res: Response) => {
     res.status(200).json({ message: ' oki Server is healthy' });

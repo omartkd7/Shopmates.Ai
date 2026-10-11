@@ -1,5 +1,5 @@
 
-import { DataTypes, Model } from "sequelize";
+import { DataTypes, Model, Optional } from "sequelize";
 import sequelize from "../config/database";
 
 type DocumentStatus = "pending" | "processing" | "completed" | "failed";
@@ -19,7 +19,8 @@ interface DocumentData {
 
 
 class Document extends Model<
-  DocumentData
+  DocumentData,
+  Optional<DocumentData, "id">
   
 > {
   declare id: number;

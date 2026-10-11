@@ -63,7 +63,9 @@ Customer.init(
         fields: ["storeId"],
       },
       {
+        unique: true,
         fields: ["storeId", "email"],
+        name: "customers_storeId_email_unique",
       },
     ],
   }

@@ -1,4 +1,4 @@
-import {DataTypes, Model, } from "sequelize";
+import {DataTypes, Model, Optional } from "sequelize";
 import sequelize from "../config/database";
 
 interface CategoryData {
@@ -10,7 +10,7 @@ interface CategoryData {
   updatedAt?: Date;
 }
 
-class Category extends Model<CategoryData> {
+class Category extends Model<CategoryData, Optional<CategoryData, "id">> {
 
     declare id: number;
   declare storeId: number;

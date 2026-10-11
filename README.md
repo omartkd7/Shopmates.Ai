@@ -32,6 +32,7 @@
 - [Stack technique](#-stack-technique)
 - [Architecture](#-architecture)
 - [Modèle de données](#-modèle-de-données)
+- [Associations et isolation multi-tenant](#associations-et-isolation-multi-tenant)
 - [Démarrage rapide](#-démarrage-rapide)
 - [Variables d'environnement](#-variables-denvironnement)
 - [API REST](#-api-rest)
@@ -229,20 +230,31 @@ shopmate/
 
 ```mermaid
 erDiagram
-    Store ||--o{ User : "possède"
+  Store ||--|| User : "a pour propriétaire"
+  Store ||--o{ RefreshToken : "possède"
+  Store ||--o{ Category : "possède"
     Store ||--o{ Product : ""
     Store ||--o{ Customer : ""
     Store ||--o{ Order : ""
+  Store ||--o{ OrderItem : "possède"
     Store ||--o{ Conversation : ""
+  Store ||--o{ Message : "possède"
     Store ||--o{ Document : ""
+  Store ||--o{ Chunk : "possède"
+  Store ||--o{ AgentLog : ""
     User ||--o{ RefreshToken : ""
-    Category ||--o{ Product : ""
-    Customer ||--o{ Order : ""
-    Order ||--o{ OrderItem : ""
-    Product ||--o{ OrderItem : ""
-    Conversation ||--o{ Message : ""
-    Document ||--o{ Chunk : ""
+  User ||--o{ Conversation : ""
+  User ||--o{ Document : "téléverse"
+  Category ||--o{ Product : "contient"
+  Customer ||--o{ Order : "passe"
+  Customer ||--o{ OrderItem : "achète"
+  Order ||--o{ OrderItem : "contient"
+  Product ||--o{ OrderItem : "figure dans"
+  Conversation ||--o{ Message : "contient"
+  Document ||--o{ Chunk : "contient"
 ```
+
+Source Mermaid modifiable : [docs/model-relations.mmd](docs/model-relations.mmd).
 
 | Entité | Rôle |
 |---|---|
@@ -255,7 +267,26 @@ erDiagram
 | `Document` / `Chunk` | Documents et morceaux vectorisés — `embedding vector(1536)` |
 | `AgentLog` | Journal d'audit des interactions |
 
-> Les 3 relations exigées sont présentes : **1—1** (User propriétaire), **1—N** (partout), **N—N** (Customer ↔ Product via `OrderItem`).
+> La relation **1—1** relie une boutique à son propriétaire. Les relations **1—N** relient les boutiques et leurs données métier. La relation **N—N** entre `Customer` et `Product` passe par `OrderItem`, qui conserve aussi la commande et le client concernés.
+
+### Associations et isolation multi-tenant
+
+Les associations sont enregistrées dans `backend/src/models/index.ts` :
+
+- **Propriétaire** : `Store.hasOne(User)` et `User.belongsTo(Store)`. Un index unique sur `users.storeId` empêche d'avoir deux propriétaires pour la même boutique.
+- **Relations 1—N** : par exemple, une boutique possède plusieurs produits, catégories et commandes; une commande possède plusieurs lignes `OrderItem`.
+- **Relation N—N** : `Customer.belongsToMany(Product)` et l'association inverse utilisent `OrderItem` comme table de jonction. `OrderItem.customerId` est rempli par une migration depuis le client de la commande existante.
+
+Chaque modèle métier a un `storeId`. Pour filtrer les requêtes, le helper `forStore` est exporté par `backend/src/models/index.ts` :
+
+```ts
+const scopedCustomers = forStore(Customer, authenticatedStoreId);
+const customers = await scopedCustomers.findAll();
+```
+
+`authenticatedStoreId` doit venir de l'utilisateur authentifié côté serveur, généralement depuis le JWT. Ne le prends jamais depuis le corps ou les paramètres envoyés par le client. Utilise `forStore` pour chaque requête sur un modèle tenant; le helper rejette un identifiant invalide, mais une requête non passée par ce helper n'est pas filtrée automatiquement.
+
+`Chunk.embedding` utilise le type Sequelize `DataTypes.VECTOR(1536)` fourni par `pgvector/sequelize`. La migration crée l'extension et la colonne vectorielle. Le fichier `backend/sql/001_init_pgvector.sql` ajoute l'index HNSW pour la recherche cosinus; applique-le après les migrations si tu veux activer cet index.
 
 ---
 
@@ -263,10 +294,9 @@ erDiagram
 
 ### Prérequis
 
-- Node.js ≥ 20
+- Node.js ≥ 22 (requis par la version installée de `pgvector`)
 - Docker et Docker Compose
-- Une clé API LLM (Anthropic ou OpenAI)
-- Expo Go sur ton téléphone (ou un émulateur)
+- PowerShell, Bash ou un terminal équivalent
 
 ### 1. Cloner le dépôt
 
@@ -275,37 +305,90 @@ git clone https://github.com/<ton-user>/shopmate-ai.git
 cd shopmate-ai
 ```
 
-### 2. Lancer la base de données
+### 2. Configurer le backend
 
 ```bash
 cd backend
-cp .env.example .env      # puis remplis tes clés
+npm install
+```
+
+Copie `backend/.env.example` vers `backend/.env`, puis ajoute les variables locales suivantes. Le fichier `.env.example` est actuellement vide.
+
+```powershell
+Copy-Item .env.example .env
+```
+
+Dans Git Bash ou macOS/Linux, l'équivalent est `cp .env.example .env`.
+
+```dotenv
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=shopmate
+DB_USER=postgres
+DB_PASSWORD=password
+PORT=4000
+SEED_ADMIN_PASSWORD=
+```
+
+Choisis une valeur d'au moins 12 caractères pour `SEED_ADMIN_PASSWORD`. Ces paramètres correspondent au `docker-compose.yml` du backend et sont réservés au développement local. Ne réutilise pas ce mot de passe en production.
+
+### 3. Lancer PostgreSQL et les migrations
+
+Depuis le dossier `backend` :
+
+```bash
 docker compose up -d db
+docker compose ps
+npx --no-install sequelize-cli db:migrate --config src/config/sequelize-cli.js --migrations-path migrations --env development
+npx --no-install sequelize-cli db:migrate:status --config src/config/sequelize-cli.js --migrations-path migrations --env development
 ```
 
-### 3. Installer et préparer le backend
+La première commande démarre PostgreSQL avec pgvector. La commande `db:migrate` crée ou met à jour le schéma; la commande `db:migrate:status` doit ensuite afficher chaque migration comme `up`. Les migrations sont la seule méthode prévue pour gérer le schéma : l'application n'utilise pas `sequelize.sync()`.
+
+Pour créer l'index HNSW après les migrations, depuis `backend` :
+
+PowerShell :
+
+```powershell
+Get-Content .\sql\001_init_pgvector.sql | docker compose exec -T db psql -U postgres -d shopmate
+```
+
+Bash, macOS ou Linux :
 
 ```bash
-npm install
-npx sequelize-cli db:migrate      # crée les tables
-npm run dev                       # → http://localhost:4000
+docker compose exec -T db psql -U postgres -d shopmate < sql/001_init_pgvector.sql
 ```
 
-> La structure actuelle du backend est basée sur Sequelize + PostgreSQL + pgvector, avec les modèles dans `backend/src/models` et le serveur démarré depuis `backend/src/server.ts`.
+### 4. Créer les données de démonstration
 
-📖 Documentation API : `http://localhost:4000/api/docs`
-
-### 4. Lancer l'application mobile
+Après les migrations, et après avoir défini `SEED_ADMIN_PASSWORD` dans `.env` :
 
 ```bash
-cd ../mobile
-npm install
-npx expo start
+npm run seed
 ```
 
-Scanne le QR code avec **Expo Go**.
+Le seed peut être relancé sans dupliquer les enregistrements. Il crée la boutique `ShopMate Demo Store`, l'admin `admin@shopmate-demo.local` avec un mot de passe hashé par bcrypt, 4 catégories, 15 produits avec prix et stock, et 4 documents d'exemple avec leurs chunks texte. Le mot de passe n'est jamais affiché dans la console.
 
-> 💡 Sur un vrai téléphone, remplace `localhost` par l'IP locale de ta machine dans `EXPO_PUBLIC_API_URL` (ex. `http://192.168.1.10:4000`).
+Les documents sont créés au statut `pending` et leurs chunks ont `embedding = null` : le seed fournit le contenu de démonstration, mais ne génère pas d'embeddings. La recherche vectorielle ne trouvera pas ces documents avant l'exécution du pipeline d'embedding.
+
+### 5. Démarrer et vérifier l'API
+
+```bash
+npm run dev
+```
+
+Le serveur s'authentifie auprès de PostgreSQL avant d'écouter sur le port `PORT`. Vérifie l'API avec `http://localhost:4000/health`, puis récupère le catalogue de démonstration avec `http://localhost:4000/api/products`. Cette route publique ne lit que la boutique fixe `ShopMate Demo Store`; elle n'accepte pas de `storeId` fourni par le client. La documentation `/api/docs` n'est pas encore configurée.
+
+Vérifications supplémentaires, toujours depuis `backend` :
+
+```bash
+npx --no-install tsc --noEmit
+npx --no-install sequelize-cli db:migrate:status --config src/config/sequelize-cli.js --migrations-path migrations --env development
+```
+
+Pour tester une association, charge les modèles depuis `src/models`, puis fais une requête de lecture avec `include`, par exemple `forStore(Customer, storeId).findAll({ include: [{ association: Customer.associations.purchasedProducts }] })`. Tu peux aussi tester `Store.associations.owner`. N'exécute ces vérifications que sur une base locale/de test.
+
+Pour arrêter PostgreSQL sans supprimer ses données : `docker compose stop db`. N'utilise pas `docker compose down -v` sauf si tu veux aussi supprimer le volume de données local.
 
 ---
 
@@ -313,18 +396,15 @@ Scanne le QR code avec **Expo Go**.
 
 | Variable | Description | Exemple |
 |---|---|---|
-| `DATABASE_URL` | Connexion PostgreSQL | `postgresql://user:pass@localhost:5432/shopmate` |
-| `JWT_ACCESS_SECRET` | Secret du token d'accès | `une-chaîne-longue-et-aléatoire` |
-| `JWT_REFRESH_SECRET` | Secret du refresh token | `une-autre-chaîne` |
-| `ACCESS_TOKEN_TTL` | Durée de vie de l'access token | `15m` |
-| `REFRESH_TOKEN_TTL` | Durée de vie du refresh token | `7d` |
-| `LLM_API_KEY` | Clé du fournisseur LLM | `sk-...` |
-| `LLM_MODEL` | Modèle de génération | `claude-sonnet-4-6` |
-| `EMBEDDING_MODEL` | Modèle d'embeddings (1536 dim.) | `text-embedding-3-small` |
-| `MCP_SERVER_URL` | URL du serveur d'outils MCP | `http://localhost:5001` |
+| `DB_HOST` | Hôte PostgreSQL | `localhost` |
+| `DB_PORT` | Port PostgreSQL | `5432` |
+| `DB_NAME` | Nom de la base | `shopmate` |
+| `DB_USER` | Utilisateur PostgreSQL | `postgres` |
+| `DB_PASSWORD` | Mot de passe PostgreSQL local | `password` |
 | `PORT` | Port du backend | `4000` |
+| `SEED_ADMIN_PASSWORD` | Mot de passe choisi pour le compte admin seedé (12 caractères minimum) | À définir localement |
 
-> ⚠️ Le fichier `.env` est dans `.gitignore`. **Ne commite jamais tes clés API.** Seul `.env.example` est versionné.
+> Le backend lit actuellement les paramètres PostgreSQL, `PORT` et `SEED_ADMIN_PASSWORD`. Les paramètres JWT, LLM et MCP seront documentés avec les modules qui les utiliseront. Le fichier `.env` est dans `.gitignore`; ne commite jamais de vrais secrets. Les valeurs de connexion ci-dessus ne sont que pour le conteneur local.
 
 ---
 
@@ -332,16 +412,19 @@ Scanne le QR code avec **Expo Go**.
 
 | Méthode | Route | Description | Accès |
 |---|---|---|---|
+| `GET` | `/health` | État du serveur | Public |
 | `POST` | `/api/auth/register` | Inscription | Public |
 | `POST` | `/api/auth/login` | Connexion | Public |
 | `POST` | `/api/auth/refresh` | Renouvellement du token | Public |
 | `POST` | `/api/auth/logout` | Déconnexion | 🔒 |
-| `GET` | `/api/products` | Liste, recherche, filtres | 🔒 |
+| `GET` | `/api/products` | Catalogue du `ShopMate Demo Store` seedé | Public (démo) |
 | `GET` | `/api/products/:id` | Détail d'un produit | 🔒 |
 | `POST` | `/api/products` | Créer un produit | 👑 Admin |
 | `GET` | `/api/orders` | Commandes du client | 🔒 |
 | `POST` | `/api/orders` | Créer une commande | 🔒 |
 | `POST` | `/api/orders/:id/cancel` | Annuler une commande | 🔒 |
+
+> Dans cette étape, seules `GET /health` et `GET /api/products` sont implémentées. Les autres routes du tableau décrivent l'API cible et seront ajoutées dans les tâches correspondantes.
 | `POST` | `/api/documents` | Déposer un document RAG | 👑 Admin |
 | `POST` | `/api/agent/chat` | **Parler à l'agent (SSE)** | 🔒 |
 | `GET` | `/api/agent/conversations` | Historique | 🔒 |

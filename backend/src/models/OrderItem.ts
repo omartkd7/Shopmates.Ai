@@ -6,6 +6,7 @@ interface OrderItemData {
   id: number;
   storeId: number;
   orderId: number;
+  customerId: number;
   productId: number;
   quantity: number;
   unitPrice: number | string;
@@ -21,6 +22,7 @@ class OrderItem extends Model<
   declare id: number;
   declare storeId: number;
   declare orderId: number;
+  declare customerId: number;
   declare productId: number;
   declare quantity: number;
   declare unitPrice: number | string;
@@ -40,6 +42,10 @@ OrderItem.init(
       allowNull: false,
     },
     orderId: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+    },
+    customerId: {
       type: DataTypes.INTEGER,
       allowNull: false,
     },
@@ -70,6 +76,9 @@ OrderItem.init(
       },
       {
         fields: ["storeId", "productId"],
+      },
+      {
+        fields: ["storeId", "customerId", "productId"],
       },
     ],
   }

@@ -12,6 +12,7 @@ import Message from "./Message";
 import Document from "./Document";
 import Chunk from "./Chunk";
 import AgentLog from "./AgentLog";
+import { addStoreScope, forStore } from "./tenantScope";
 
 // Store -> Owner
 Store.hasOne(User, {
@@ -87,6 +88,27 @@ Store.hasMany(Customer, {
 Customer.belongsTo(Store, {
   foreignKey: "storeId",
   as: "store",
+});
+
+Customer.belongsToMany(Product, {
+  through: OrderItem,
+  foreignKey: "customerId",
+  otherKey: "productId",
+  as: "purchasedProducts",
+});
+Customer.hasMany(OrderItem, {
+  foreignKey: "customerId",
+  as: "purchasedItems",
+});
+OrderItem.belongsTo(Customer, {
+  foreignKey: "customerId",
+  as: "customer",
+});
+Product.belongsToMany(Customer, {
+  through: OrderItem,
+  foreignKey: "productId",
+  otherKey: "customerId",
+  as: "customers",
 });
 
 // Customer -> Orders
@@ -240,6 +262,21 @@ AgentLog.belongsTo(Store, {
   as: "store",
 });
 
+[
+  User,
+  RefreshToken,
+  Category,
+  Product,
+  Customer,
+  Order,
+  OrderItem,
+  Conversation,
+  Message,
+  Document,
+  Chunk,
+  AgentLog,
+].forEach(addStoreScope);
+
 export {
   Store,
   User,
@@ -254,4 +291,5 @@ export {
   Document,
   Chunk,
   AgentLog,
+  forStore,
 };

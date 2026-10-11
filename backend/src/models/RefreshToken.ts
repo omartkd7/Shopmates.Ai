@@ -4,6 +4,7 @@ import sequelize from "../config/database";
 interface RefreshTokenData {
 
     id: number;
+  storeId: number;
     userId: number;
     token: string;
     expiresAt: Date;
@@ -30,6 +31,10 @@ RefreshToken.init({
     primaryKey: true,
   },
   userId: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+  },
+  storeId: {
     type: DataTypes.INTEGER,
     allowNull: false,
   },
