@@ -1,25 +1,28 @@
 import { DataTypes, Model, Optional } from "sequelize";
 import sequelize from "../config/database";
 
+export type UserRole = "ADMIN" | "CUSTOMER";
+
 interface UserData {
   id: number;
   storeId: number;
   name: string;
   email: string;
   password: string;
+  role: UserRole;
   createdAt?: Date;
   updatedAt?: Date;
 }
 
 class User
-  extends Model<UserData, Optional<UserData, "id">>
-//  implements UserData
+  extends Model<UserData, Optional<UserData, "id" | "role">>
 {
   declare id: number;
   declare storeId: number;
   declare name: string;
   declare email: string;
   declare password: string;
+  declare role: UserRole;
   declare readonly createdAt: Date;
   declare readonly updatedAt: Date;
 }
@@ -51,6 +54,12 @@ User.init(
       type: DataTypes.STRING,
       allowNull: false,
     },
+
+    role: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      defaultValue: "CUSTOMER",
+    },
   },
   {
     sequelize,
@@ -62,11 +71,6 @@ User.init(
         unique: true,
         fields: ["storeId", "email"],
         name: "users_storeId_email_unique",
-      },
-      {
-        unique: true,
-        fields: ["storeId"],
-        name: "users_storeId_unique",
       },
     ],
   }

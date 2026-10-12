@@ -87,7 +87,7 @@ async function seed(): Promise<void> {
 
     if (admin) {
       await admin.update(
-        { name: "Demo Admin", password: passwordHash },
+        { name: "Demo Admin", password: passwordHash, role: "ADMIN" },
         { transaction }
       );
     } else {
@@ -97,6 +97,7 @@ async function seed(): Promise<void> {
           name: "Demo Admin",
           email: DEMO_ADMIN_EMAIL,
           password: passwordHash,
+          role: "ADMIN",
         },
         { transaction }
       );
