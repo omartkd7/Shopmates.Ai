@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useCatalogStore, type Product } from "@/src/stores/catalogStore";
+import { useAuthStore } from "@/src/stores/authStore";
 import {
   colorTokens,
   radiusTokens,
@@ -23,6 +24,9 @@ export default function CatalogScreen() {
   const status = useCatalogStore((state) => state.status);
   const error = useCatalogStore((state) => state.error);
   const loadProducts = useCatalogStore((state) => state.loadProducts);
+  const user = useAuthStore((state) => state.user);
+  const logout = useAuthStore((state) => state.logout);
+
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
 
@@ -67,6 +71,8 @@ export default function CatalogScreen() {
             categories={categories}
             selectedCategory={selectedCategory}
             onSelectCategory={setSelectedCategory}
+            user={user}
+            onLogout={() => void logout()}
           />
         }
         renderItem={({ item }) => <ProductCard product={item} />}
@@ -74,18 +80,18 @@ export default function CatalogScreen() {
           status === "loading" ? (
             <View style={styles.messageState}>
               <ActivityIndicator color={colorTokens.brand} />
-              <Text style={styles.messageText}>Loading the catalog...</Text>
+              <Text style={styles.messageText}>Chargement du catalogue...</Text>
             </View>
           ) : status === "error" ? (
             <View style={styles.messageState}>
               <Text style={styles.errorText}>{error}</Text>
               <Pressable style={styles.retryButton} onPress={() => void loadProducts()}>
-                <Text style={styles.retryText}>Try again</Text>
+                <Text style={styles.retryText}>Réessayer</Text>
               </Pressable>
             </View>
           ) : (
             <View style={styles.messageState}>
-              <Text style={styles.messageText}>No products match this search.</Text>
+              <Text style={styles.messageText}>Aucun produit ne correspond à cette recherche.</Text>
             </View>
           )
         }
@@ -101,6 +107,8 @@ function CatalogHeader({
   categories,
   selectedCategory,
   onSelectCategory,
+  user,
+  onLogout,
 }: {
   count: number;
   search: string;
@@ -108,23 +116,45 @@ function CatalogHeader({
   categories: string[];
   selectedCategory: string;
   onSelectCategory: (category: string) => void;
+  user: { name: string; email: string; role: string } | null;
+  onLogout: () => void;
 }) {
   return (
     <View style={styles.header}>
+      {/* Brand & Demo row */}
       <View style={styles.brandRow}>
         <View style={styles.brandMark}>
           <Text style={styles.brandMarkText}>S</Text>
         </View>
-        <Text style={styles.brandName}>SHOPMATE</Text>
+        <Text style={styles.brandName}>SHOPMATE AI</Text>
         <View style={styles.demoBadge}>
           <Text style={styles.demoBadgeText}>DEMO STORE</Text>
         </View>
       </View>
-      <Text style={styles.title}>Find your{`\n`}next favorite.</Text>
-      <Text style={styles.subtitle}>{count} items ready to explore</Text>
+
+      {/* User greeting & Logout banner */}
+      <View style={styles.userBanner}>
+        <View style={styles.userInfo}>
+          <Text style={styles.greetingText}>Bonjour, {user?.name || "Client"} 👋</Text>
+          <Text style={styles.userEmail}>{user?.email || ""}</Text>
+        </View>
+        <Pressable
+          style={({ pressed }) => [
+            styles.logoutButton,
+            pressed && styles.logoutButtonPressed,
+          ]}
+          onPress={onLogout}
+          accessibilityRole="button"
+        >
+          <Text style={styles.logoutButtonText}>Déconnexion</Text>
+        </Pressable>
+      </View>
+
+      <Text style={styles.title}>Trouvez votre{`\n`}prochain coup de cœur.</Text>
+      <Text style={styles.subtitle}>{count} articles prêts à commander en COD</Text>
       <TextInput
-        accessibilityLabel="Search products"
-        placeholder="Search the catalog"
+        accessibilityLabel="Rechercher des produits"
+        placeholder="Rechercher dans le catalogue..."
         placeholderTextColor={colorTokens.muted}
         value={search}
         onChangeText={onSearch}
@@ -164,13 +194,13 @@ function ProductCard({ product }: { product: Product }) {
         <Text style={styles.productArtworkLabel}>{product.category?.name ?? "SHOPMATE"}</Text>
         <Text style={styles.productArtworkMark}>S</Text>
       </View>
-      <Text style={styles.productCategory}>{product.category?.name ?? "Featured"}</Text>
+      <Text style={styles.productCategory}>{product.category?.name ?? "En vedette"}</Text>
       <Text numberOfLines={2} style={styles.productName}>
         {product.name}
       </Text>
       <View style={styles.productFooter}>
-        <Text style={styles.productPrice}>MAD {Number(product.price).toFixed(2)}</Text>
-        <Text style={styles.productStock}>{product.stock} left</Text>
+        <Text style={styles.productPrice}>{Number(product.price).toFixed(2)} MAD</Text>
+        <Text style={styles.productStock}>{product.stock} en stock</Text>
       </View>
     </View>
   );
@@ -179,7 +209,7 @@ function ProductCard({ product }: { product: Product }) {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: colorTokens.canvas,
+    backgroundColor: colorTokens.surface,
   },
   listContent: {
     paddingHorizontal: spacingTokens.md,
@@ -197,7 +227,7 @@ const styles = StyleSheet.create({
   brandMark: {
     width: 32,
     height: 32,
-    borderRadius: radiusTokens.small,
+    borderRadius: radiusTokens.sm,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: colorTokens.brand,
@@ -217,25 +247,64 @@ const styles = StyleSheet.create({
     marginLeft: "auto",
     paddingHorizontal: 9,
     paddingVertical: 6,
-    borderRadius: radiusTokens.small,
+    borderRadius: radiusTokens.sm,
     backgroundColor: colorTokens.highlight,
   },
   demoBadgeText: {
-    color: colorTokens.ink,
+    color: colorTokens.surface,
     fontSize: 10,
     fontWeight: "800",
+  },
+  userBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: colorTokens.surfaceContainerLow,
+    borderColor: colorTokens.border,
+    borderWidth: 1,
+    borderRadius: radiusTokens.md,
+    padding: spacingTokens.sm,
+    marginTop: spacingTokens.md,
+  },
+  userInfo: {
+    flex: 1,
+  },
+  greetingText: {
+    fontSize: typographyTokens.body.fontSize,
+    fontWeight: "700",
+    color: colorTokens.ink,
+  },
+  userEmail: {
+    fontSize: typographyTokens.caption.fontSize,
+    color: colorTokens.muted,
+  },
+  logoutButton: {
+    paddingVertical: spacingTokens.xs,
+    paddingHorizontal: spacingTokens.sm,
+    borderRadius: radiusTokens.sm,
+    backgroundColor: colorTokens.surfaceContainer,
+    borderWidth: 1,
+    borderColor: colorTokens.border,
+  },
+  logoutButtonPressed: {
+    opacity: 0.7,
+  },
+  logoutButtonText: {
+    fontSize: typographyTokens.caption.fontSize,
+    color: colorTokens.danger,
+    fontWeight: "600",
   },
   title: {
     marginTop: spacingTokens.lg,
     color: colorTokens.ink,
-    fontSize: typographyTokens.title,
+    fontSize: typographyTokens.title.fontSize,
     lineHeight: 33,
-    fontWeight: "800",
+    fontWeight: typographyTokens.title.fontWeight,
   },
   subtitle: {
     marginTop: spacingTokens.xs,
     color: colorTokens.muted,
-    fontSize: typographyTokens.body,
+    fontSize: typographyTokens.body.fontSize,
   },
   searchInput: {
     height: 48,
@@ -243,10 +312,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacingTokens.md,
     borderWidth: 1,
     borderColor: colorTokens.border,
-    borderRadius: radiusTokens.medium,
+    borderRadius: radiusTokens.md,
     color: colorTokens.ink,
-    backgroundColor: colorTokens.surface,
-    fontSize: typographyTokens.body,
+    backgroundColor: colorTokens.surfaceContainerLowest,
+    fontSize: typographyTokens.body.fontSize,
   },
   categoryList: {
     gap: spacingTokens.sm,
@@ -258,8 +327,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacingTokens.md,
     borderWidth: 1,
     borderColor: colorTokens.border,
-    borderRadius: radiusTokens.small,
-    backgroundColor: colorTokens.surface,
+    borderRadius: radiusTokens.sm,
+    backgroundColor: colorTokens.surfaceContainerLowest,
   },
   categoryButtonSelected: {
     borderColor: colorTokens.ink,
@@ -268,7 +337,7 @@ const styles = StyleSheet.create({
   categoryText: {
     color: colorTokens.ink,
     fontWeight: "600",
-    fontSize: typographyTokens.label,
+    fontSize: typographyTokens.caption.fontSize,
   },
   categoryTextSelected: {
     color: colorTokens.surface,
@@ -283,14 +352,14 @@ const styles = StyleSheet.create({
     padding: spacingTokens.sm,
     borderWidth: 1,
     borderColor: colorTokens.border,
-    borderRadius: radiusTokens.medium,
-    backgroundColor: colorTokens.surface,
+    borderRadius: radiusTokens.md,
+    backgroundColor: colorTokens.surfaceContainerLowest,
   },
   productArtwork: {
     height: 116,
     padding: spacingTokens.sm,
     justifyContent: "space-between",
-    borderRadius: radiusTokens.small,
+    borderRadius: radiusTokens.sm,
     backgroundColor: colorTokens.brand,
   },
   productArtworkLabel: {
@@ -355,7 +424,7 @@ const styles = StyleSheet.create({
     marginTop: spacingTokens.md,
     paddingHorizontal: spacingTokens.md,
     paddingVertical: spacingTokens.sm,
-    borderRadius: radiusTokens.small,
+    borderRadius: radiusTokens.sm,
     backgroundColor: colorTokens.ink,
   },
   retryText: {
