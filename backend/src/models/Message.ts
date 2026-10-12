@@ -1,5 +1,5 @@
 
-import { DataTypes, Model } from "sequelize";
+import { DataTypes, Model, Optional } from "sequelize";
 import sequelize from "../config/database";
 
 type MessageRole = "user" | "assistant" | "system";
@@ -14,10 +14,9 @@ interface MessageData {
   updatedAt?: Date;
 }
 
-
 class Message extends Model<
-  MessageData
-  
+  MessageData,
+  Optional<MessageData, "id">
 > {
   declare id: number;
   declare storeId: number;

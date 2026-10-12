@@ -1,24 +1,28 @@
-
-import { DataTypes, Model } from "sequelize";
+import { DataTypes, Model, Optional } from "sequelize";
 import sequelize from "../config/database";
 
-interface OrderData {
+export type OrderStatus =
+  | "PENDING"
+  | "CONFIRMED"
+  | "SHIPPED"
+  | "DELIVERED"
+  | "CANCELLED";
+
+export interface OrderData {
   id: number;
   storeId: number;
   customerId: number;
-  status: "pending" | "processing" | "completed" | "cancelled";
+  status: OrderStatus | string;
   total: number | string;
   createdAt?: Date;
   updatedAt?: Date;
 }
 
-
-
-class Order extends Model<OrderData> {
+class Order extends Model<OrderData, Optional<OrderData, "id" | "status" | "total">> {
   declare id: number;
   declare storeId: number;
   declare customerId: number;
-  declare status: "pending" | "processing" | "completed" | "cancelled";
+  declare status: OrderStatus | string;
   declare total: number | string;
   declare readonly createdAt: Date;
   declare readonly updatedAt: Date;
@@ -40,14 +44,9 @@ Order.init(
       allowNull: false,
     },
     status: {
-      type: DataTypes.ENUM(
-        "pending",
-        "processing",
-        "completed",
-        "cancelled"
-      ),
+      type: DataTypes.STRING,
       allowNull: false,
-      defaultValue: "pending",
+      defaultValue: "PENDING",
     },
     total: {
       type: DataTypes.DECIMAL(10, 2),

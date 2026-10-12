@@ -1,5 +1,5 @@
 
-import { DataTypes, Model } from "sequelize";
+import { DataTypes, Model, Optional } from "sequelize";
 import sequelize from "../config/database";
 
 interface ConversationData {
@@ -12,10 +12,9 @@ interface ConversationData {
   updatedAt?: Date;
 }
 
-
 class Conversation extends Model<
-  ConversationData
-  
+  ConversationData,
+  Optional<ConversationData, "id">
 > {
   declare id: number;
   declare storeId: number;

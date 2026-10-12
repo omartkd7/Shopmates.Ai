@@ -1,5 +1,4 @@
-
-import { DataTypes, Model } from "sequelize";
+import { DataTypes, Model, Optional } from "sequelize";
 import sequelize from "../config/database";
 
 type AgentLogStatus = "success" | "error";
@@ -17,11 +16,9 @@ interface AgentLogData {
   updatedAt?: Date;
 }
 
-
-
 class AgentLog extends Model<
-  AgentLogData
-  
+  AgentLogData,
+  Optional<AgentLogData, "id">
 > {
   declare id: number;
   declare storeId: number;

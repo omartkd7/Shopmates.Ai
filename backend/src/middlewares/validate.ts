@@ -17,7 +17,18 @@ export function validate(
     }
 
     // Replace with typed, sanitized data
-    req[source] = parseResult.data;
+    // Express 5 makes req.query and req.params getter-only properties on the prototype
+    if (source === "body") {
+      req.body = parseResult.data;
+    } else {
+      Object.defineProperty(req, source, {
+        value: parseResult.data,
+        writable: true,
+        configurable: true,
+        enumerable: true,
+      });
+    }
+
     next();
   };
 }

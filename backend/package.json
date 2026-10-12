@@ -17,15 +17,16 @@
     "cors": "^2.8.6",
     "dotenv": "^18.0.1",
     "express": "^5.2.1",
+    "express-rate-limit": "^7.5.0",
+    "helmet": "^8.0.0",
+    "jsonwebtoken": "^9.0.2",
     "pg": "^8.23.1",
     "pg-hstore": "^2.3.4",
     "pgvector": "^0.3.0",
     "sequelize": "^6.37.8",
+    "swagger-ui-express": "^5.0.1",
     "winston": "^3.19.0",
-    "zod": "^4.6.5",
-    "jsonwebtoken": "^9.0.2",
-    "helmet": "^8.0.0",
-    "express-rate-limit": "^7.5.0"
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
@@ -33,6 +34,7 @@
     "@types/express": "^5.0.6",
     "@types/jsonwebtoken": "^9.0.8",
     "@types/node": "^26.6.2",
+    "@types/swagger-ui-express": "^4.1.8",
     "sequelize-cli": "^6.6.5",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2"
