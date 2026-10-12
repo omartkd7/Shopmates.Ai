@@ -23,7 +23,9 @@
     "sequelize": "^6.37.8",
     "winston": "^3.19.0",
     "zod": "^4.6.5",
-    "jsonwebtoken": "^9.0.2"
+    "jsonwebtoken": "^9.0.2",
+    "helmet": "^8.0.0",
+    "express-rate-limit": "^7.5.0"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
