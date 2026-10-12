@@ -1,20 +1,21 @@
-import {DataTypes, Model, } from "sequelize";
+import { DataTypes, Model, Optional } from "sequelize";
 import sequelize from "../config/database";
 
 interface RefreshTokenData {
-
-    id: number;
+  id: number;
   storeId: number;
-    userId: number;
-    token: string;
-    expiresAt: Date;
-    createdAt?: Date;
-    updatedAt?: Date;
+  userId: number;
+  token: string;
+  expiresAt: Date;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
-class RefreshToken extends Model<RefreshTokenData> {
-
-     declare id: number;
+class RefreshToken extends Model<
+  RefreshTokenData,
+  Optional<RefreshTokenData, "id">
+> {
+  declare id: number;
   declare storeId: number;
   declare userId: number;
   declare token: string;

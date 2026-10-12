@@ -1,7 +1,5 @@
-"use strict";
-
-
 import express,{ Request , Response} from "express";
+import { errorHandler } from "./middlewares";
 import authRouter from "./routes/auth";
 import productsRouter from "./routes/products";
 
@@ -14,4 +12,8 @@ appserver.use("/api/products", productsRouter);
 appserver.get('/health' , (req: Request, res: Response) => {
     res.status(200).json({ message: ' oki Server is healthy' });
 });
+
+// Centralized error handler (must be last)
+appserver.use(errorHandler);
+
 export default appserver;
