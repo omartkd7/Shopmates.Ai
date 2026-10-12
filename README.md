@@ -54,7 +54,10 @@ L'application est **multi-tenant** : chaque donnée est rattachée à un `storeI
 
 ### Dernière mise à jour
 
-La base du backend est maintenant structurée autour d'Express + TypeScript + PostgreSQL + pgvector + Sequelize, avec les modèles métier dans `backend/src/models` et le démarrage de l'API dans `backend/src/server.ts`.
+- **Backend (Tâches SA-1 à SA-5 finalisées) :** Architecture Express + TypeScript, base PostgreSQL 16 avec pgvector sous Docker, ORM Sequelize avec 13 modèles et 14 migrations, isolation multi-tenant (`storeId`), script de seed (`npm run seed`) avec données de test complètes (boutique démo, admin avec hash bcrypt, 15 produits avec prix et stock, documents RAG textuels), et premières routes (`GET /health`, `GET /api/products`).
+- **Application Mobile (`mobile/`) :** Initialisation du frontend mobile avec Expo et Expo Router (navigation par onglets), stores d'état Zustand (`authStore`, `catalogStore`), stockage sécurisé des tokens avec `Expo SecureStore`, client API Axios et tokens de design.
+- **Design & Maquettes (`stitch_shopmate/`) :** Intégration des prototypes UI et du Design System pour l'application mobile (Assistant conversationnel IA, Boutique catalogue, Suivi des commandes, Profil utilisateur).
+- **Journal de bord (`docs/journal-de-prompts.md`) :** Documentation continue du vibe coding raisonné, des décisions techniques et des points clés pour la soutenance.
 
 > 🎓 Projet Fil Rouge — *Mobile Augmented AI* · Deadline : **24 octobre 2026**
 
@@ -210,17 +213,29 @@ shopmate/
 ├── backend/
 │   ├── src/
 │   │   ├── config/                    # environnement, base de données, logger
-│   │   ├── models/                    # Store, Product, Order, User, etc.
-│   │   ├── app.ts                    # initialisation Express
-│   │   ├── server.ts                 # démarrage du serveur
-│   │   └── ...
-│   ├── docker-compose.yml
+│   │   ├── models/                    # 13 modèles Sequelize (Store, User, Product, Order...)
+│   │   ├── routes/                    # routes API Express (ex. products.ts)
+│   │   ├── app.ts                     # initialisation Express
+│   │   ├── seed.ts                    # script d'insertion des données de test
+│   │   └── server.ts                  # démarrage et écoute du serveur
+│   ├── migrations/                    # 14 migrations Sequelize
+│   ├── sql/                           # scripts SQL additionnels (ex. index HNSW pgvector)
+│   ├── docker-compose.yml             # conteneur PostgreSQL + pgvector
 │   ├── package.json
 │   └── .env.example
-├── mobile/                            # Expo Router, stores Zustand, écran chat SSE
+├── mobile/                            # Application mobile Expo React Native
+│   ├── app/                           # Expo Router (layout, onglets (tabs))
+│   ├── src/
+│   │   ├── api/                       # client Axios et configuration réseau
+│   │   ├── auth/                      # gestion sécurisée des tokens (SecureStore)
+│   │   ├── stores/                    # stores d'état Zustand (authStore, catalogStore)
+│   │   └── theme/                     # tokens graphiques et thème de l'application
+│   ├── package.json
+│   └── .env.example
+├── stitch_shopmate/                   # Maquettes HTML/CSS & Design System de référence
 ├── docs/                              # cahier des charges, UML, journal de prompts
 ├── class-diagram.md                   # diagramme de classes
-├── AGENTS.md                          # règles d'assistance IA
+├── AGENTS.md                          # règles de collaboration avec l'IA
 └── README.md
 ```
 
@@ -506,8 +521,8 @@ Le `Dockerfile` est **multi-stage** (build puis runtime léger). Le `docker-comp
 | Semaine | Contenu | Statut |
 |:---:|---|:---:|
 | 1 | Cadrage, cahier des charges, UML/ERD, maquettes | 🟢 |
-| 2 | PostgreSQL + Sequelize, migrations, seed, pgvector | ⚪ |
-| 3 | Authentification JWT complète | ⚪ |
+| 2 | PostgreSQL + Sequelize, migrations, seed, pgvector | 🟢 |
+| 3 | Authentification JWT complète | 🟡 |
 | 4 | CRUD produits/commandes, Swagger + Postman | ⚪ |
 | 5 | Pipeline RAG (chunking, embeddings, recherche) | ⚪ |
 | 6 | Function calling (outils + confirmation) | ⚪ |
@@ -527,8 +542,9 @@ Le `Dockerfile` est **multi-stage** (build puis runtime léger). Le `docker-comp
 |---|---|
 | `docs/cahier-des-charges.pdf` | Périmètre, 38 besoins fonctionnels, 18 non fonctionnels, critères d'acceptation |
 | `docs/conception-uml.md` | Cas d'utilisation, diagramme de classes, séquence, ERD |
-| `docs/journal-de-prompts.md` | Vibe coding documenté — livrable évalué |
-| `http://localhost:4000/api/docs` | Documentation Swagger interactive |
+| `docs/journal-de-prompts.md` | Vibe coding documenté — livrable évalué (sessions, bugs, décisions) |
+| `stitch_shopmate/shopmate_ai/DESIGN.md` | Design System, charte graphique et spécifications UI |
+| `http://localhost:4000/api/docs` | Documentation Swagger interactive (à venir) |
 
 ---
 
