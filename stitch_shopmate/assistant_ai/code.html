@@ -1,0 +1,204 @@
+<html lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/><link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{width:100vw;margin:0;padding:0;overflow-x:hidden;}body{overscroll-behavior:none;}.pb-safe{padding-bottom:env(safe-area-inset-bottom,0px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config={darkMode:"class",theme:{extend:{"colors":{"inverse-on-surface":"#ffede8","error-container":"#ffdad6","secondary-fixed":"#caecbc","on-tertiary":"#ffffff","tertiary":"#006768","on-primary-container":"#fffbff","tertiary-container":"#008283","on-secondary-fixed-variant":"#324e2a","surface":"#fff8f6","secondary-container":"#caecbc","on-secondary":"#ffffff","on-primary-fixed-variant":"#802910","on-tertiary-fixed-variant":"#004f50","on-secondary-container":"#4f6c45","inverse-surface":"#392e2b","primary":"#9c3e23","on-tertiary-fixed":"#002020","primary-container":"#bc5539","tertiary-fixed":"#8ff3f3","secondary":"#496640","on-background":"#231917","on-error-container":"#93000a","primary-fixed":"#ffdbd1","surface-container-high":"#f8e4df","surface-container":"#feeae5","surface-tint":"#a04025","primary-fixed-dim":"#ffb5a1","surface-bright":"#fff8f6","on-tertiary-container":"#f3fffe","on-secondary-fixed":"#062104","on-surface-variant":"#56423d","outline":"#8a726c","surface-variant":"#f2ded9","error":"#ba1a1a","outline-variant":"#ddc0b9","surface-container-highest":"#f2ded9","on-surface":"#231917","surface-container-lowest":"#ffffff","secondary-fixed-dim":"#afd0a1","on-primary-fixed":"#3b0900","inverse-primary":"#ffb5a1","on-primary":"#ffffff","tertiary-fixed-dim":"#72d6d7","surface-container-low":"#fff1ed","background":"#fff8f6","on-error":"#ffffff","surface-dim":"#e9d6d1"},"borderRadius":{"DEFAULT":"0.25rem","lg":"0.5rem","xl":"0.75rem","full":"9999px"},"spacing":{"md":"16px","bubble-padding":"12px 16px","sm":"8px","base":"4px","xl":"32px","xs":"4px","lg":"24px","card-padding":"20px"},"fontFamily":{"body-lg":["Lexend"],"body-md":["Lexend"],"label-sm":["Lexend"],"display-lg":["Lexend"],"label-lg":["Lexend"],"headline-sm":["Lexend"],"headline-md":["Lexend"]},"fontSize":{"body-lg":["16px",{"lineHeight":"24px","fontWeight":"400"}],"body-md":["14px",{"lineHeight":"20px","fontWeight":"400"}],"label-sm":["11px",{"lineHeight":"16px","letterSpacing":"0.5px","fontWeight":"500"}],"display-lg":["32px",{"lineHeight":"40px","fontWeight":"700"}],"label-lg":["14px",{"lineHeight":"20px","letterSpacing":"0.1px","fontWeight":"600"}],"headline-sm":["20px",{"lineHeight":"28px","fontWeight":"600"}],"headline-md":["24px",{"lineHeight":"32px","fontWeight":"600"}]}}}}</script><style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head><body class="bg-surface font-body-md text-on-surface flex flex-col min-h-screen"><header class="fixed top-0 inset-x-0 z-50 bg-surface/80 backdrop-blur-xl pt-safe shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="h-16 px-md flex items-center justify-between"><div class="w-12"></div><div class="flex items-center justify-center flex-1"><img alt="ShopMate AI Logo" class="h-8 w-auto object-contain" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD018pJi9RR4uVIH5hXo028zxpGot1v-zJSNVw1QN5irZR_eb5lJS6NOpVji10GR_39OakRAEw_eqsh8wi_lxC7Ue5JocMjSxrY31NRPar3ENVe6t8-IBmVzhcnBeb9TR4iOmdYTakh5VODDFiVzkGwbzy1uOv1fCyBkO5Gf0Nqy-_v36cwxxRX4viaYJ23EOYY53EVy6n1d6dSvZJFLCWce08mNCt3q4gY6ipiom731rP151pyd7VQ7A"/></div><div class="w-12 flex justify-end"><img alt="Profile" class="w-8 h-8 rounded-full object-cover border border-outline-variant" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAXeY2nPQgNdY0MwL3ncoGseg7-5_h6En3RpKOYf5eoVkq1bvga00WQ5bVZ2dsquvILqg-Ci34O4uEt9wyYHxU_G-NJmmkdc6AwF9liNIVifuRcX4Y70KQgrZy608Nnl_jnAFV_eaQ8KBPb_ztc2iJh0DFTydiVx4p9YyfqA0NC-5MAb_VRAlhSGRh2LZJfoDhT2brXuCYLGEN2jHivdSsws1ax_sXL2ZUg08rxLhCSgAbRHocQCuFbuw"/></div></div></header><main class="flex-1 flex flex-col w-full pt-16 pb-20 bg-surface"><div class="flex flex-col w-full h-full relative" id="chat-container">
+<!-- Chat History Container -->
+<div class="flex-1 overflow-y-auto px-md py-lg flex flex-col gap-lg pb-[100px]">
+<!-- Empty State Suggestions (Initial View) - Hidden in this flow, but structure exists -->
+<!--
+        <div class="flex flex-col items-center justify-center h-full mb-lg text-center gap-sm">
+            <span class="material-symbols-outlined text-[48px] text-tertiary opacity-20">waving_hand</span>
+            <p class="font-body-lg text-on-surface-variant mb-md">Comment puis-je vous aider ?</p>
+            <div class="flex flex-wrap gap-sm justify-center">
+                <button class="px-bubble-padding py-sm bg-surface-container-high rounded-full font-label-md text-on-surface hover:bg-surface-variant active:scale-95 transition-all">Quelles sont les promotions ?</button>
+                <button class="px-bubble-padding py-sm bg-surface-container-high rounded-full font-label-md text-on-surface hover:bg-surface-variant active:scale-95 transition-all">Où est ma commande ?</button>
+                <button class="px-bubble-padding py-sm bg-surface-container-high rounded-full font-label-md text-on-surface hover:bg-surface-variant active:scale-95 transition-all">Chercher un cadeau</button>
+            </div>
+        </div>
+        -->
+<!-- Chat Bubble 1: Assistant -->
+<div class="flex flex-col items-start max-w-[85%] self-start animate-fade-in-up" style="animation-delay: 0.1s;">
+<div class="flex items-end gap-sm mb-xs">
+<div class="w-8 h-8 rounded-full bg-secondary-container flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-on-secondary-container text-[18px]">smart_toy</span>
+</div>
+<span class="font-label-sm text-on-surface-variant ml-xs">ShopMate</span>
+</div>
+<div class="bg-surface-container rounded-2xl rounded-tl-none p-bubble-padding shadow-sm">
+<p class="font-body-md text-on-surface">Bonjour ! Comment puis-je vous aider aujourd'hui ?</p>
+</div>
+</div>
+<!-- Chat Bubble 2: User -->
+<div class="flex flex-col items-end max-w-[85%] self-end animate-fade-in-up" style="animation-delay: 0.2s;">
+<div class="bg-primary text-on-primary rounded-2xl rounded-tr-none p-bubble-padding shadow-sm">
+<p class="font-body-md">Je cherche un tapis traditionnel.</p>
+</div>
+<span class="font-label-sm text-on-surface-variant mt-xs mr-xs">Vous</span>
+</div>
+<!-- Chat Bubble 3: Assistant (Product Suggestion) -->
+<div class="flex flex-col items-start max-w-[85%] self-start animate-fade-in-up" style="animation-delay: 0.4s;">
+<div class="flex items-end gap-sm mb-xs">
+<div class="w-8 h-8 rounded-full bg-secondary-container flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-on-secondary-container text-[18px]">smart_toy</span>
+</div>
+<span class="font-label-sm text-on-surface-variant ml-xs">ShopMate</span>
+</div>
+<div class="bg-surface-container rounded-2xl rounded-tl-none p-bubble-padding shadow-sm flex flex-col gap-sm">
+<p class="font-body-md text-on-surface">Voici quelques tapis zellige magnifiques qui pourraient correspondre à votre recherche :</p>
+<!-- In-chat Product Card -->
+<div class="mt-sm bg-surface rounded-xl overflow-hidden shadow-sm w-[240px]">
+<div class="bg-cover bg-center h-[140px] w-full" data-alt="Close-up of a traditional Moroccan zellige rug in vibrant red and warm terracotta tones, intricate geometric patterns, soft natural sunlight casting gentle shadows on the woven texture. Cozy, artisanal, modern tactile style." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAiaFTlZZKAWZ6M4MlVNyrYN00rs-68nOqenyp6eGTzwsCOAHdkPb4gysImqBig88xDsd0Mj6iMWQVpKisZ_V1e0xvCzpGcxbWswdLGTItA7-tJmGD2d53GDe_2PEc6oKoa5saA0G5b6cFK3XbWTUj3MP8OijKVT8c7yhGR9xKx_2MijD9IXtKUj-EhgfRNIwiVb4cKPuRhEKyy6WYVKEWQJwLEDnEWW4OpL_rlX0PKedxIdcxLR_xleg')"></div>
+<div class="p-sm flex flex-col gap-xs">
+<span class="font-label-lg text-on-surface">Tapis Zellige Rouge</span>
+<span class="font-headline-sm text-primary">450 DH</span>
+<button class="mt-xs w-full py-sm bg-secondary-container text-on-secondary-container rounded-lg font-label-md active:scale-95 transition-all">Voir les détails</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Chat Bubble 4: User (Implied selection) -->
+<div class="flex flex-col items-end max-w-[85%] self-end animate-fade-in-up" style="animation-delay: 0.6s;">
+<div class="bg-primary text-on-primary rounded-2xl rounded-tr-none p-bubble-padding shadow-sm">
+<p class="font-body-md">Je le prends !</p>
+</div>
+</div>
+<!-- Thinking State -->
+<div class="flex flex-col items-start max-w-[85%] self-start animate-fade-in-up" id="thinking-state" style="animation-delay: 0.8s;">
+<div class="flex items-end gap-sm mb-xs">
+<div class="w-8 h-8 rounded-full bg-secondary-container flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-on-secondary-container text-[18px]">smart_toy</span>
+</div>
+<span class="font-label-sm text-on-surface-variant ml-xs">ShopMate</span>
+</div>
+<div class="bg-surface-container rounded-2xl rounded-tl-none px-md py-sm shadow-sm flex items-center gap-sm">
+<div class="flex gap-1" id="loading-dots">
+<div class="w-2 h-2 rounded-full bg-secondary animate-bounce"></div>
+<div class="w-2 h-2 rounded-full bg-secondary animate-bounce" style="animation-delay: 0.1s"></div>
+<div class="w-2 h-2 rounded-full bg-secondary animate-bounce" style="animation-delay: 0.2s"></div>
+</div>
+<span class="font-body-sm text-on-surface-variant italic">Préparation de la commande...</span>
+</div>
+</div>
+<!-- Order Confirmation Card (Appears after thinking) -->
+<div class="flex flex-col items-start w-full self-start animate-fade-in-up hidden" id="order-card">
+<div class="flex items-end gap-sm mb-xs">
+<div class="w-8 h-8 rounded-full bg-secondary-container flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-on-secondary-container text-[18px]">check_circle</span>
+</div>
+<span class="font-label-sm text-on-surface-variant ml-xs">ShopMate • Confirmation requise</span>
+</div>
+<div class="bg-surface-container rounded-2xl rounded-tl-none p-md w-full shadow-md flex flex-col gap-md relative overflow-hidden">
+<!-- Subtle Gradient Background for depth -->
+<div class="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent pointer-events-none"></div>
+<h3 class="font-headline-sm text-on-surface z-10">Résumé de votre commande</h3>
+<div class="flex gap-md items-center z-10 bg-surface/50 rounded-xl p-sm">
+<div class="bg-cover bg-center h-[64px] w-[64px] rounded-lg shrink-0" data-alt="Small thumbnail of a traditional Moroccan zellige rug in vibrant red, geometric pattern." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuD_D-b0TzgxbdFtjIwFSPmXwxjKXCwJ7yCmnoCOoJxFJtpDzhK2deN256mzkJC1R5RGR-3r-wy0xOnODki6EPiZ0ohJH5pZaWAIVR8pSoIKj86o1JQsnToCzTtnStYsaZm5bcsZr3LUyY3QS8-qGmgzPE5vBqSV_Y9OLxG-3AhT-IBZtzT6D5rCjBTyCH5WNsya6BSDZdV_UmLatpkQt1A4gREhjOrhk69j0aJpAB04dRk1XYc3pcmmug')"></div>
+<div class="flex flex-col flex-1 min-w-0">
+<span class="font-label-lg text-on-surface truncate">Tapis Zellige Rouge</span>
+<span class="font-body-md text-on-surface-variant">Artisanat Local</span>
+<span class="font-headline-sm text-primary mt-xs">450 DH</span>
+</div>
+</div>
+<div class="flex flex-col gap-sm z-10">
+<div class="flex items-start gap-sm">
+<span class="material-symbols-outlined text-on-surface-variant text-[20px] mt-xs shrink-0">location_on</span>
+<div class="flex flex-col">
+<span class="font-label-sm text-on-surface-variant">Livraison à</span>
+<span class="font-body-md text-on-surface">12 Rue de Casablanca, Quartier Gauthier, Casablanca</span>
+</div>
+</div>
+<div class="flex items-start gap-sm">
+<span class="material-symbols-outlined text-on-surface-variant text-[20px] mt-xs shrink-0">payments</span>
+<div class="flex flex-col">
+<span class="font-label-sm text-on-surface-variant">Méthode de paiement</span>
+<!-- COD Badge -->
+<div class="inline-flex items-center gap-xs bg-[#FDB813] text-[#231917] px-sm py-1 rounded-md mt-xs w-fit">
+<span class="material-symbols-outlined text-[16px]">verified</span>
+<span class="font-label-sm font-bold">Paiement à la livraison</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Action Buttons -->
+<div class="flex flex-col gap-sm mt-sm z-10">
+<button class="w-full py-md bg-primary text-on-primary rounded-xl font-label-lg shadow-sm active:scale-95 transition-transform flex items-center justify-center gap-sm">
+<span class="material-symbols-outlined text-[20px]">check</span>
+                        Confirmer la commande
+                    </button>
+<button class="w-full py-md bg-transparent text-on-surface-variant rounded-xl font-label-lg border-none hover:bg-surface-variant/50 active:scale-95 transition-transform">
+                        Annuler
+                    </button>
+</div>
+</div>
+</div>
+</div>
+<!-- Sticky Chat Input -->
+<div class="absolute bottom-0 left-0 right-0 p-md bg-surface/90 backdrop-blur-md shadow-[0_-4px_16px_rgba(0,0,0,0.05)] border-t border-outline-variant/20 z-20">
+<div class="flex items-center bg-surface-container-highest rounded-[24px] p-1 shadow-inner relative">
+<input class="flex-1 bg-transparent border-none focus:outline-none focus:ring-0 px-md py-sm font-body-md text-on-surface placeholder:text-on-surface-variant/70 min-w-0" id="chat-input" placeholder="Parlez à ShopMate..." type="text"/>
+<button class="w-[40px] h-[40px] rounded-full bg-primary text-on-primary flex items-center justify-center shrink-0 active:scale-90 transition-transform shadow-sm" id="send-btn">
+<span class="material-symbols-outlined text-[20px] ml-1" style="font-variation-settings: 'FILL' 1;">send</span>
+</button>
+</div>
+<div class="text-center mt-xs">
+<span class="font-label-sm text-on-surface-variant/60">L'IA peut faire des erreurs. Vérifiez toujours.</span>
+</div>
+</div>
+</div>
+<style>
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    .animate-fade-in-up {
+        animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        opacity: 0;
+    }
+</style>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // Simple simulation of the chat flow
+        const thinkingState = document.getElementById('thinking-state');
+        const orderCard = document.getElementById('order-card');
+        const chatContainer = document.querySelector('.overflow-y-auto');
+        
+        // Simulate thinking delay then show order card
+        setTimeout(() => {
+            if(thinkingState && orderCard) {
+                thinkingState.classList.add('hidden');
+                orderCard.classList.remove('hidden');
+                // Scroll to bottom
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            }
+        }, 3500);
+
+        // Input interaction focus
+        const input = document.getElementById('chat-input');
+        const sendBtn = document.getElementById('send-btn');
+        
+        input.addEventListener('focus', () => {
+             // Scroll slightly to ensure input is fully visible if keyboard pops up
+             setTimeout(() => {
+                 chatContainer.scrollTop = chatContainer.scrollHeight;
+             }, 300);
+        });
+        
+        sendBtn.addEventListener('click', () => {
+            if(input.value.trim() !== '') {
+                // Flash button
+                sendBtn.classList.add('scale-90');
+                setTimeout(() => sendBtn.classList.remove('scale-90'), 150);
+                input.value = '';
+            }
+        });
+    });
+</script></main><nav class="fixed bottom-0 inset-x-0 z-50 pb-safe bg-surface/90 backdrop-blur-xl shadow-[0_-1px_8px_rgba(0,0,0,0.04)]" data-active-classes="text-primary font-bold"><div class="flex justify-around items-center h-16 px-sm"><a aria-current="page" class="flex flex-col items-center justify-center gap-1 flex-1 transition-all active:scale-95 text-primary font-bold" data-path="assistant" href="#"><span class="material-symbols-outlined">chat</span><span class="font-label-sm text-label-sm">Assistant</span></a><a class="flex flex-col items-center justify-center gap-1 flex-1 text-on-surface-variant transition-all active:scale-95" data-path="boutique" href="#"><span class="material-symbols-outlined">shopping_bag</span><span class="font-label-sm text-label-sm">Boutique</span></a><a class="flex flex-col items-center justify-center gap-1 flex-1 text-on-surface-variant transition-all active:scale-95" data-path="mes-commandes" href="#"><span class="material-symbols-outlined">receipt</span><span class="font-label-sm text-label-sm">Commandes</span></a><a class="flex flex-col items-center justify-center gap-1 flex-1 text-on-surface-variant transition-all active:scale-95" data-path="profil" href="#"><span class="material-symbols-outlined">person</span><span class="font-label-sm text-label-sm">Profil</span></a></div></nav></body></html>

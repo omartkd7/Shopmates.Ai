@@ -3,10 +3,9 @@
 import app from './app';
 import sequelize from './config/database';
 
-const PORT = Number(process.env.PORT) ;
+const PORT = Number(process.env.PORT) || 4000;
 
-async function sartserver(){
-
+async function startServer() {
     try {
         await sequelize.authenticate();
         console.log('Database connection has been established successfully.');
@@ -19,4 +18,4 @@ async function sartserver(){
     }
 }
 
-sartserver();
+startServer();

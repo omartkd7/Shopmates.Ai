@@ -390,6 +390,21 @@ Pour tester une association, charge les modèles depuis `src/models`, puis fais 
 
 Pour arrêter PostgreSQL sans supprimer ses données : `docker compose stop db`. N'utilise pas `docker compose down -v` sauf si tu veux aussi supprimer le volume de données local.
 
+### 6. Démarrer l'application mobile
+
+Dans un nouveau terminal, depuis la racine du dépôt :
+
+```powershell
+Set-Location mobile
+Copy-Item .env.example .env
+npm install
+npx expo start --lan
+```
+
+Scanne le QR code avec **Expo Go**. Dans `mobile/.env`, `EXPO_PUBLIC_API_URL` vaut `http://localhost:4000` par défaut. Sur un téléphone physique, remplace `localhost` par l'adresse IPv4 locale de ton ordinateur, par exemple `http://192.168.1.10:4000`; le téléphone et l'ordinateur doivent être sur le même réseau. `localhost` convient à un émulateur qui partage le réseau de développement, pas à un téléphone physique.
+
+Le thème mobile contient des tokens provisoires car le dépôt ne contient pas de maquette Figma mobile. Remplace ces valeurs par celles des maquettes lorsqu'elles seront disponibles.
+
 ---
 
 ## 🔑 Variables d'environnement
