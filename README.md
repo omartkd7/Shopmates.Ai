@@ -74,6 +74,9 @@ L'application est **multi-tenant** : chaque donnée est rattachée à un `storeI
   - Collection et environnement Postman complets avec extraction automatique des tokens (`docs/ShopMate_AI.postman_collection.json`).
   - Headers Helmet, limitation de débit globale et par utilisateur, sanitisation des logs pour exclure les mots de passe et jetons.
 - **Journal de bord (`docs/journal-de-prompts.md`) :** Documentation continue du vibe coding raisonné, des décisions techniques et des points clés pour la soutenance.
+- **Catalogue Produits Mobile (Écrans Explore & Détail) :**
+  - **Écran Catalogue (`mobile/app/(tabs)/index.tsx`) :** Barre de recherche en temps réel, carrousel de filtres par catégorie avec pastilles actives, filtre par fourchette de prix, pagination / défilement infini, gestion des états (chargement squelette/spinner, catalogue vide avec CTA, bannières d'erreur avec rechargement).
+  - **Écran Fiche Produit (`mobile/app/product/[id].tsx`) :** Affichage galerie photos, titre, badges de catégorie, prix en Dirhams (DH), description complète, sélecteurs interactifs de tailles/variantes, indicateur de stock en temps réel, et bouton d'action directe pour passer commande.
 - **Pipeline RAG — Ingestion de documents (`src/services/rag.ts` + `POST /api/documents`) :**
   - Upload de fichiers `.md`/`.txt` via `multipart/form-data` (Multer, max 2 Mo, ADMIN uniquement).
   - Découpage en chunks de ~800 caractères avec chevauchement de 100 caractères, en respectant les frontières de paragraphes, de lignes et d'espaces.
@@ -478,6 +481,13 @@ Le thème mobile et les composants partagés respectent fidèlement la charte gr
 | `JWT_SECRET` | Clé secrète de signature des jetons d'accès JWT | `une-cle-secrete-aleatoire-tres-longue` |
 | `JWT_EXPIRES_IN` | Durée de validité des jetons d'accès | `15m` |
 | `CORS_ORIGIN` | Domaines autorisés pour CORS | `http://localhost:8081,http://localhost:19006` |
+| `OPENAI_API_KEY` | Clé API OpenAI (utilisée pour générer les embeddings RAG) | `sk-...` |
+| `EMBEDDING_MODEL` | Modèle d'embeddings pgvector (1536 dim) | `text-embedding-3-small` |
+| `DEEPSEEK_API_KEY` | Clé API DeepSeek pour la génération conversationnelle | `sk-...` |
+| `DEEPSEEK_BASE_URL` | URL de base de l'API DeepSeek | `https://api.deepseek.com` |
+| `LLM_API_KEY` | Clé d'accès du client LLM provider-agnostique | `sk-...` |
+| `LLM_BASE_URL` | Endpoint du provider LLM (DeepSeek, OpenAI, etc.) | `https://api.deepseek.com` |
+| `LLM_MODEL` | Modèle de chat utilisé par l'agent | `deepseek-chat` *(ou `gpt-4o-mini`)* |
 | `EXPO_PUBLIC_API_URL` | URL de base de l'API pour l'application mobile Expo | `http://localhost:4000` *(ou IP LAN)* |
 
 > Le fichier `.env` est exclu du contrôle de version (`.gitignore`). Ne commitez jamais de secrets réels. Seul `.env.example` sert de modèle.
@@ -530,13 +540,17 @@ Le thème mobile et les composants partagés respectent fidèlement la charte gr
 | `GET` | `/api/docs` | Interface Swagger UI interactive | Public |
 | `GET` | `/api/docs/swagger.json` | Spécification OpenAPI 3.0 au format JSON | Public |
 
-### Assistant IA & RAG *(Prochaines étapes)*
+### Assistant IA & RAG (Connaissances & Chat)
 | Méthode | Route | Description | Accès |
 |---|---|---|---|
-| `POST` | `/api/documents` | Déposer un document RAG (FAQ, livraisons, retours) | 👑 Admin |
-| `POST` | `/api/agent/chat` | **Parler à l'assistant conversationnel (streaming SSE)** | 🔒 Client |
-| `GET` | `/api/agent/conversations` | Historique des conversations | 🔒 Client |
-| `GET` | `/api/agent/logs` | Journal d'audit des requêtes, outils et sources | 👑 Admin |
+| `GET` | `/api/documents` | Lister les documents de connaissances de la boutique | 👑 Admin |
+| `POST` | `/api/documents` | Déposer un document RAG (upload .md/.txt, chunking ~800 car., embeddings 1536) | 👑 Admin |
+| `PUT` | `/api/documents/:id/reingest` | Ré-ingérer un document (mise à jour du texte et recalcul atomique des vecteurs) | 👑 Admin |
+| `DELETE` | `/api/documents/:id` | Supprimer un document et tous ses chunks associés en cascade | 👑 Admin |
+| `GET` | `/api/documents/search` | Recherche sémantique cosinus (`q=...`, seuil 0.75, top 4-6 chunks avec scores) | 🔒 Client/Admin |
+| `POST` | `/api/agent/chat` | **Parler à l'assistant conversationnel (mode streaming SSE ou JSON)** | 🔒 Client |
+| `GET` | `/api/agent/conversations` | Historique des conversations du client connecté | 🔒 Client |
+| `GET` | `/api/agent/logs` | Journal d'audit des requêtes, outils appelés et sources documentaires | 👑 Admin |
 
 ---
 
@@ -602,10 +616,10 @@ Le `Dockerfile` est **multi-stage** (build puis runtime léger). Le `docker-comp
 | 2 | PostgreSQL + Sequelize, migrations, seed, pgvector | 🟢 |
 | 3 | Authentification JWT complète (Backend + Mobile) | 🟢 |
 | 4 | CRUD produits, catégories, commandes COD, Swagger + Postman | 🟢 |
-| 5 | Pipeline RAG (chunking, embeddings, recherche cosinus) | 🟡 |
-| 6 | Function calling (8 outils + confirmation explicite) | ⚪ |
-| 7 | Streaming SSE + écran chat Expo | ⚪ |
-| 8 | Garde-fous, modération, audit | ⚪ |
+| 5 | Pipeline RAG (ingestion, embeddings 1536 dim, recherche cosinus HNSW) | 🟢 |
+| 6 | Function calling (8 outils + validation Zod + confirmation explicite) | 🟡 |
+| 7 | Streaming SSE + Client LLM provider-agnostique (DeepSeek/OpenAI) + écran chat Expo | 🟡 |
+| 8 | Garde-fous, modération, audit (`AgentLog`) | 🟢 |
 | 9 | Serveur MCP + n8n *(bonus)* | ⚪ |
 | 10 | Docker + déploiement | ⚪ |
 | 11 | Journal de prompts, documentation, soutenance | ⚪ |
