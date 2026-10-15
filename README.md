@@ -88,6 +88,13 @@ L'application est **multi-tenant** : chaque donnée est rattachée à un `storeI
   - Seuil de similarité `0.75` : en dessous, retourne un tableau vide → l'agent répond "Je n'ai pas cette information" (anti-hallucination).
   - Retourne les top 4-6 chunks avec le nom du document source et le score de similarité.
   - Route de test `GET /api/documents/search?q=...` pour valider la récupération depuis Postman.
+- **Client LLM Provider-Agnostique & Agent Conversationnel (`src/services/llm.ts` + `POST /api/agent/chat`) :**
+  - Compatible DeepSeek, OpenAI ou Claude via API OpenAI-compatible (`LLM_BASE_URL`, `LLM_API_KEY`, `LLM_MODEL`).
+  - Gestion des flux streaming (Server-Sent Events `text/event-stream`) et mode JSON classique.
+  - Prompt système strict : rôle conseiller de vente ShopMate, détection automatique Français/Darija, réponses basées RAG avec citation des sources, règles de refus (prix, remises, remboursements directs, conseils juridiques/médicaux).
+  - Protection contre les injections de prompt : le contexte documentaire RAG est traité comme des données pures, pas des instructions.
+  - Limite de tokens (`1024`), timeout (30s) et retry automatique sur erreurs temporaires.
+  - Traçabilité et audit dans `AgentLog` pour chaque tour de conversation.
 
 
 > 🎓 Projet Fil Rouge — *Mobile Augmented AI* · Deadline : **24 octobre 2026**
