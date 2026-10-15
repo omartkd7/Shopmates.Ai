@@ -54,6 +54,11 @@ L'application est **multi-tenant** : chaque donnée est rattachée à un `storeI
 
 ### Dernière mise à jour
 
+- **Navigation Mobile & Système de Design (`stitch_shopmate`) :**
+  - **Layout à 4 onglets Expo Router :** Navigation fluide et réactive entre **Boutique** (`index`), **Assistant IA** (`chat`), **Commandes** (`orders`), et **Profil** (`profile`), suivant fidèlement les maquettes Figma et le design system.
+  - **Tokens de thème & Design System :** Palette complète extraite de `stitch_shopmate/shopmate_ai/DESIGN.md` (terracotta primaire `#9c3e23`, or COD `#F5A623`, surfaces douces `#fff8f6`, typographies Lexend, rayons et espacements).
+  - **Composants partagés réutilisables :** `Button` (variantes primary, secondary, outline, danger), `Input` (avec labels et bannières d'erreur), `Card` (surfaces modulaires), `Loader` (spinner thématisé), `EmptyState` (listes et recherches vides avec CTA), et `ErrorState` (avec bouton de nouvelle tentative).
+  - **Gestion cohérente des états :** Gestion uniforme du chargement, des données vides et des erreurs réseau sur l'ensemble des 4 écrans.
 - **Authentification complète (Backend & Mobile) :**
   - **Backend :** Authentification JWT avec rotation de refresh tokens (`/api/auth/register`, `/api/auth/login`, `/api/auth/refresh`, `/api/auth/logout`, `/api/auth/me`). Hachage bcrypt, jetons de rafraîchissement stockés et hachés SHA-256 en base avec invalidation immédiate en cas de renouvellement ou déconnexion.
   - **Mobile :** Écrans d'inscription et de connexion avec validation de formulaires et bannières d'erreur, persistance sécurisée dans `Expo SecureStore`, store d'état Zustand (`authStore`), intercepteur Axios avec mutex anti-concurrence sur 401 pour rafraîchir le jeton silencieusement, et route guards avec splash loader pour protéger l'application.
@@ -63,9 +68,10 @@ L'application est **multi-tenant** : chaque donnée est rattachée à un `storeI
   - CRUD complet des catégories (`/api/categories`) et mutations de produits (`POST`, `PUT`, `DELETE`) strictement restreintes au rôle `ADMIN`.
   - Isolation multi-tenant stricte : `storeId` injecté côté serveur depuis le JWT (ou démo par défaut), toute valeur fournie par le client est ignorée/supprimée, requêtes scopées via `forStore`.
 - **Commandes COD & Transactions ACID :**
-  - Création de commande (`POST /api/orders`) avec verrouillage de stock pessimiste et transaction atomique, consultation des commandes du client (`GET /api/orders`) et annulation (`POST /api/orders/:id/cancel`).
+  - Création de commande (`POST /api/orders`) avec verrouillage de stock pessimiste et transaction atomique, consultation des commandes du client (`GET /api/orders`), annulation avec réintégration des stocks (`POST /api/orders/:id/cancel`), et mise à jour du statut administrateur (`PATCH /api/orders/:id/status`).
 - **Documentation & Sécurité :**
   - Spécification OpenAPI / Swagger UI interactive disponible sur `/api/docs`.
+  - Collection et environnement Postman complets avec extraction automatique des tokens (`docs/ShopMate_AI.postman_collection.json`).
   - Headers Helmet, limitation de débit globale et par utilisateur, sanitisation des logs pour exclure les mots de passe et jetons.
 - **Journal de bord (`docs/journal-de-prompts.md`) :** Documentation continue du vibe coding raisonné, des décisions techniques et des points clés pour la soutenance.
 
@@ -234,12 +240,16 @@ shopmate/
 │   ├── package.json
 │   └── .env.example
 ├── mobile/                            # Application mobile Expo React Native
-│   ├── app/                           # Expo Router (layout, onglets (tabs))
+│   ├── app/                           # Expo Router
+│   │   ├── (auth)/                    # Écrans d'authentification (login, register)
+│   │   ├── (tabs)/                    # 4 Onglets principaux (Boutique, Chat, Commandes, Profil)
+│   │   └── _layout.tsx                # Layout racine et Route Guards
 │   ├── src/
-│   │   ├── api/                       # client Axios et configuration réseau
-│   │   ├── auth/                      # gestion sécurisée des tokens (SecureStore)
+│   │   ├── api/                       # client Axios et intercepteur de rafraîchissement 401
+│   │   ├── auth/                      # gestion sécurisée des tokens (Expo SecureStore)
+│   │   ├── components/                # composants partagés (Button, Input, Card, Loader, EmptyState, ErrorState)
 │   │   ├── stores/                    # stores d'état Zustand (authStore, catalogStore)
-│   │   └── theme/                     # tokens graphiques et thème de l'application
+│   │   └── theme/                     # tokens graphiques et système de design Figma
 │   ├── package.json
 │   └── .env.example
 ├── stitch_shopmate/                   # Maquettes HTML/CSS & Design System de référence
@@ -428,7 +438,7 @@ npx expo start --lan
 
 Scanne le QR code avec **Expo Go**. Dans `mobile/.env`, `EXPO_PUBLIC_API_URL` vaut `http://localhost:4000` par défaut. Sur un téléphone physique, remplace `localhost` par l'adresse IPv4 locale de ton ordinateur, par exemple `http://192.168.1.10:4000`; le téléphone et l'ordinateur doivent être sur le même réseau. `localhost` convient à un émulateur qui partage le réseau de développement, pas à un téléphone physique.
 
-Le thème mobile contient des tokens provisoires car le dépôt ne contient pas de maquette Figma mobile. Remplace ces valeurs par celles des maquettes lorsqu'elles seront disponibles.
+Le thème mobile et les composants partagés respectent fidèlement la charte graphique et les maquettes Figma documentées dans `stitch_shopmate/` (couleur primaire terracotta `#9c3e23`, badges dorés COD `#F5A623`, surfaces chaleureuses `#fff8f6`, et typographie Lexend).
 
 ---
 
