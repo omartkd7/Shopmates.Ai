@@ -84,6 +84,7 @@ export const useAuthStore = create<AuthState>((set, get) => {
         }>("/api/auth/me");
 
         const userData = response.data.user;
+        const currentTokens = await getTokens();
 
         set({
           user: {
@@ -93,8 +94,8 @@ export const useAuthStore = create<AuthState>((set, get) => {
             email: userData.email,
             role: userData.role,
           },
-          accessToken,
-          refreshToken,
+          accessToken: currentTokens.accessToken ?? accessToken,
+          refreshToken: currentTokens.refreshToken ?? refreshToken,
           isAuthenticated: true,
           isLoading: false,
         });

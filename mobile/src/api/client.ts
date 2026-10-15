@@ -36,6 +36,9 @@ apiClient.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
+// Active refresh promise to deduplicate concurrent refresh calls
+let refreshPromise: Promise<string> | null = null;
+
 // Response Interceptor: Handle 401, refresh token once, retry or log out
 apiClient.interceptors.response.use(
   (response) => response,
@@ -66,39 +69,45 @@ apiClient.interceptors.response.use(
     originalRequest._retry = true;
 
     try {
-      const { refreshToken } = await getTokens();
+      if (!refreshPromise) {
+        refreshPromise = (async () => {
+          const { refreshToken } = await getTokens();
 
-      if (!refreshToken) {
-        await clearTokens();
-        if (onAuthFailedCallback) {
-          onAuthFailedCallback();
-        }
-        return Promise.reject(error);
-      }
+          if (!refreshToken) {
+            throw new Error("No refresh token available");
+          }
 
-      // Call refresh endpoint with raw axios to bypass interceptor
-      const refreshResponse = await axios.post<{
-        accessToken: string;
-        refreshToken: string;
-      }>(`${API_BASE_URL}/api/auth/refresh`, {
-        refreshToken,
-      });
+          // Call refresh endpoint with raw axios to bypass interceptor
+          const refreshResponse = await axios.post<{
+            accessToken: string;
+            refreshToken: string;
+          }>(`${API_BASE_URL}/api/auth/refresh`, {
+            refreshToken,
+          });
 
-      const { accessToken: newAccessToken, refreshToken: newRefreshToken } =
-        refreshResponse.data;
+          const { accessToken: newAccessToken, refreshToken: newRefreshToken } =
+            refreshResponse.data;
 
-      // Persist newly rotated tokens
-      await saveTokens({
-        accessToken: newAccessToken,
-        refreshToken: newRefreshToken,
-      });
+          // Persist newly rotated tokens
+          await saveTokens({
+            accessToken: newAccessToken,
+            refreshToken: newRefreshToken,
+          });
 
-      if (onTokensUpdatedCallback) {
-        onTokensUpdatedCallback({
-          accessToken: newAccessToken,
-          refreshToken: newRefreshToken,
+          if (onTokensUpdatedCallback) {
+            onTokensUpdatedCallback({
+              accessToken: newAccessToken,
+              refreshToken: newRefreshToken,
+            });
+          }
+
+          return newAccessToken;
+        })().finally(() => {
+          refreshPromise = null;
         });
       }
+
+      const newAccessToken = await refreshPromise;
 
       // Update failed request's Authorization header and retry
       if (originalRequest.headers) {
