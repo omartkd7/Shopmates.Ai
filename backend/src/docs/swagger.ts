@@ -636,6 +636,37 @@ export const swaggerSpec = {
         },
       },
     },
+    "/api/orders/{id}/status": {
+      patch: {
+        tags: ["Orders"],
+        summary: "Mettre à jour le statut d'une commande (Admin)",
+        security: [{ BearerAuth: [] }],
+        parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["status"],
+                properties: {
+                  status: {
+                    type: "string",
+                    enum: ["PENDING", "CONFIRMED", "SHIPPED", "DELIVERED", "CANCELLED"],
+                    example: "CONFIRMED",
+                  },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: { description: "Statut de la commande mis à jour" },
+          403: { description: "Réservé aux administrateurs" },
+          404: { description: "Commande introuvable" },
+        },
+      },
+    },
     "/api/documents": {
       get: {
         tags: ["Documents"],

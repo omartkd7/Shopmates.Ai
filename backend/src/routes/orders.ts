@@ -1,11 +1,13 @@
 import { Router, Request, Response, NextFunction } from "express";
 import sequelize from "../config/database";
 import { Customer, Order, OrderItem, Product, forStore } from "../models";
-import { authenticate, injectTenant, validate } from "../middlewares";
+import { authenticate, injectTenant, requireRole, validate } from "../middlewares";
 import {
   createOrderSchema,
   orderIdParamSchema,
+  updateOrderStatusSchema,
   type CreateOrderInput,
+  type UpdateOrderStatusInput,
 } from "../schemas/order";
 
 const ordersRouter = Router();
@@ -343,6 +345,75 @@ ordersRouter.post(
       return res.json({
         message: "Order cancelled successfully and stock restored",
         order: cancelledOrder,
+      });
+    } catch (err: any) {
+      if (err.statusCode) {
+        return res.status(err.statusCode).json({ error: err.message });
+      }
+      next(err);
+    }
+  }
+);
+
+/**
+ * PATCH /api/orders/:id/status
+ * Update order status (ADMIN only).
+ * If transitioning to CANCELLED, stock is safely restored in a transaction.
+ */
+ordersRouter.patch(
+  "/:id/status",
+  requireRole("ADMIN"),
+  validate(orderIdParamSchema, "params"),
+  validate(updateOrderStatusSchema, "body"),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const storeId = req.storeId as number;
+      const orderId = Number(req.params.id);
+      const { status: newStatus } = req.body as UpdateOrderStatusInput;
+
+      const updatedOrder = await sequelize.transaction(async (t) => {
+        const order = (await Order.findOne({
+          where: { id: orderId, storeId },
+          transaction: t,
+          lock: t.LOCK.UPDATE,
+        })) as Order | null;
+
+        if (!order) {
+          const err = new Error("Order not found");
+          (err as any).statusCode = 404;
+          throw err;
+        }
+
+        // If transitioning from non-cancelled to CANCELLED, restore stock
+        if (newStatus === "CANCELLED" && order.status !== "CANCELLED") {
+          const items = await OrderItem.findAll({
+            where: { orderId: order.id, storeId },
+            transaction: t,
+          });
+
+          for (const item of items) {
+            const product = (await Product.findOne({
+              where: { id: item.productId, storeId },
+              transaction: t,
+              lock: t.LOCK.UPDATE,
+            })) as Product | null;
+
+            if (product) {
+              await product.increment("stock", {
+                by: item.quantity,
+                transaction: t,
+              });
+            }
+          }
+        }
+
+        await order.update({ status: newStatus }, { transaction: t });
+        return order;
+      });
+
+      return res.json({
+        message: `Order status updated to ${newStatus}`,
+        order: updatedOrder,
       });
     } catch (err: any) {
       if (err.statusCode) {
