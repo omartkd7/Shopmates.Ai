@@ -82,6 +82,13 @@ L'application est **multi-tenant** : chaque donnée est rattachée à un `storeI
   - Re-ingestion (`PUT /api/documents/:id/reingest`) : suppression atomique des anciens chunks puis recréation complète.
   - Suppression propre (`DELETE /api/documents/:id`) : chunks supprimés avant le document, dans une transaction.
   - Variables d'environnement : `OPENAI_API_KEY`, `EMBEDDING_MODEL`, `DEEPSEEK_API_KEY`, `DEEPSEEK_BASE_URL`.
+- **Pipeline RAG — Recherche sémantique (`retrieveContext` + `GET /api/documents/search`) :**
+  - Embedding de la question utilisateur avec le même modèle (`text-embedding-3-small`).
+  - Requête pgvector avec opérateur de distance cosinus (`<=>`) sur l'index HNSW, toujours filtrée par `storeId` (isolation multi-tenant stricte).
+  - Seuil de similarité `0.75` : en dessous, retourne un tableau vide → l'agent répond "Je n'ai pas cette information" (anti-hallucination).
+  - Retourne les top 4-6 chunks avec le nom du document source et le score de similarité.
+  - Route de test `GET /api/documents/search?q=...` pour valider la récupération depuis Postman.
+
 
 > 🎓 Projet Fil Rouge — *Mobile Augmented AI* · Deadline : **24 octobre 2026**
 

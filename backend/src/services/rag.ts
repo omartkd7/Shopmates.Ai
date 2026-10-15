@@ -1,4 +1,6 @@
 import OpenAI from "openai";
+import { QueryTypes } from "sequelize";
+import sequelize from "../config/database";
 
 // ─── OpenAI client (embeddings only) ────────────────────────────────────────
 // DeepSeek has no embedding endpoint; we use OpenAI text-embedding-3-small
@@ -100,4 +102,83 @@ export async function embedChunks(chunks: string[]): Promise<number[][]> {
   }
 
   return results;
+}
+
+// ─── Retrieval ───────────────────────────────────────────────────────────────
+
+/**
+ * A single retrieved chunk returned by retrieveContext().
+ */
+export interface RetrievedChunk {
+  chunkId: number;
+  documentId: number;
+  /** Human-readable name of the source document (FAQ, size guide, etc.) */
+  source: string;
+  content: string;
+  /** Cosine similarity score 0-1. Higher = more relevant. */
+  score: number;
+}
+
+/**
+ * Similarity threshold below which chunks are considered irrelevant.
+ * 0.75 works well for French customer-service text with text-embedding-3-small.
+ * Adjust downward if legitimate questions return nothing;
+ * upward to cut noise from loosely related chunks.
+ */
+export const SIMILARITY_THRESHOLD = 0.75;
+
+/** Maximum number of chunks to return. README says 4-6. */
+const TOP_K = 6;
+
+/**
+ * Retrieves the most semantically similar chunks to `question` for a given
+ * store, using pgvector HNSW index with cosine similarity.
+ *
+ * Returns an empty array when no chunk crosses SIMILARITY_THRESHOLD —
+ * the agent must then respond "Je n'ai pas cette information."
+ *
+ * Security: storeId always comes from the JWT (server-injected), never
+ * from the client. It filters both the WHERE clause and the HNSW scan.
+ */
+export async function retrieveContext(
+  question: string,
+  storeId: number
+): Promise<RetrievedChunk[]> {
+  // 1. Embed the question with the same model used at ingestion
+  const questionEmbedding = await embedText(question);
+
+  // 2. Format as pgvector literal: '[0.1,0.2,...]'
+  const vectorLiteral = `[${questionEmbedding.join(",")}]`;
+
+  // 3. Raw SQL with pgvector cosine distance operator (<=>)
+  //    All parameters are :named replacements — zero SQL injection risk.
+
+  const rows = (await sequelize.query(
+    `
+    SELECT
+      c.id                                        AS "chunkId",
+      c."documentId"                              AS "documentId",
+      d.name                                      AS "source",
+      c.content                                   AS "content",
+      1 - (c.embedding <=> :vector::vector)       AS "score"
+    FROM chunks c
+    JOIN documents d ON d.id = c."documentId"
+    WHERE c."storeId" = :storeId
+      AND c.embedding IS NOT NULL
+      AND 1 - (c.embedding <=> :vector::vector) >= :threshold
+    ORDER BY c.embedding <=> :vector::vector
+    LIMIT :topK
+    `,
+    {
+      replacements: {
+        vector: vectorLiteral,
+        storeId,
+        threshold: SIMILARITY_THRESHOLD,
+        topK: TOP_K,
+      },
+      type: QueryTypes.SELECT,
+    }
+  )) as RetrievedChunk[];
+
+  return rows;
 }

@@ -3,7 +3,7 @@ import multer from "multer";
 import { Document, Chunk, forStore } from "../models";
 import Document_Model from "../models/Document";
 import { authenticate, injectTenant, requireRole, validate } from "../middlewares";
-import { chunkText, embedChunks } from "../services/rag";
+import { chunkText, embedChunks, retrieveContext, SIMILARITY_THRESHOLD } from "../services/rag";
 import sequelize from "../config/database";
 import { z } from "zod";
 
@@ -286,6 +286,58 @@ documentsRouter.delete(
       }
 
       return res.json({ message: "Document and all its chunks deleted" });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+// ─── GET /api/documents/search ───────────────────────────────────────────────
+/**
+ * Semantic search endpoint — useful for testing RAG retrieval from Postman
+ * before the full agent is wired up.
+ *
+ * Any authenticated user can call this (customer or admin); the agent will
+ * use retrieveContext() directly, but this route lets you verify results.
+ *
+ * GET /api/documents/search?q=Vous+livrez+%C3%A0+Casablanca+%3F
+ *
+ * Response when chunks found:
+ *   { hasContext: true, threshold: 0.75, chunks: [...] }
+ *
+ * Response when no chunk crosses the threshold:
+ *   { hasContext: false, threshold: 0.75, chunks: [], message: "Je n'ai pas cette information" }
+ */
+documentsRouter.get(
+  "/search",
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const storeId = req.storeId as number;
+      const question = (req.query.q as string | undefined)?.trim();
+
+      if (!question || question.length === 0) {
+        return res
+          .status(400)
+          .json({ error: "Query parameter `q` is required" });
+      }
+
+      const chunks = await retrieveContext(question, storeId);
+
+      if (chunks.length === 0) {
+        return res.json({
+          hasContext: false,
+          threshold: SIMILARITY_THRESHOLD,
+          chunks: [],
+          message: "Je n'ai pas cette information",
+        });
+      }
+
+      return res.json({
+        hasContext: true,
+        threshold: SIMILARITY_THRESHOLD,
+        count: chunks.length,
+        chunks,
+      });
     } catch (err) {
       next(err);
     }
