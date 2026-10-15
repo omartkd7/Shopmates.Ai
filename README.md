@@ -54,9 +54,19 @@ L'application est **multi-tenant** : chaque donnée est rattachée à un `storeI
 
 ### Dernière mise à jour
 
-- **Backend (Tâches SA-1 à SA-5 finalisées) :** Architecture Express + TypeScript, base PostgreSQL 16 avec pgvector sous Docker, ORM Sequelize avec 13 modèles et 14 migrations, isolation multi-tenant (`storeId`), script de seed (`npm run seed`) avec données de test complètes (boutique démo, admin avec hash bcrypt, 15 produits avec prix et stock, documents RAG textuels), et premières routes (`GET /health`, `GET /api/products`).
-- **Application Mobile (`mobile/`) :** Initialisation du frontend mobile avec Expo et Expo Router (navigation par onglets), stores d'état Zustand (`authStore`, `catalogStore`), stockage sécurisé des tokens avec `Expo SecureStore`, client API Axios et tokens de design.
-- **Design & Maquettes (`stitch_shopmate/`) :** Intégration des prototypes UI et du Design System pour l'application mobile (Assistant conversationnel IA, Boutique catalogue, Suivi des commandes, Profil utilisateur).
+- **Authentification complète (Backend & Mobile) :**
+  - **Backend :** Authentification JWT avec rotation de refresh tokens (`/api/auth/register`, `/api/auth/login`, `/api/auth/refresh`, `/api/auth/logout`, `/api/auth/me`). Hachage bcrypt, jetons de rafraîchissement stockés et hachés SHA-256 en base avec invalidation immédiate en cas de renouvellement ou déconnexion.
+  - **Mobile :** Écrans d'inscription et de connexion avec validation de formulaires et bannières d'erreur, persistance sécurisée dans `Expo SecureStore`, store d'état Zustand (`authStore`), intercepteur Axios avec mutex anti-concurrence sur 401 pour rafraîchir le jeton silencieusement, et route guards avec splash loader pour protéger l'application.
+- **Catalogue & Catégories (Backend SA-6 / SA-7) :**
+  - Recherche plein texte insensible à la casse (`iLike`), filtres par catégorie et fourchette de prix, pagination (`GET /api/products`).
+  - Endpoint temps réel `GET /api/products/:id/stock` fournissant le stock et le prix exacts en direct de la base de données sans hallucination LLM.
+  - CRUD complet des catégories (`/api/categories`) et mutations de produits (`POST`, `PUT`, `DELETE`) strictement restreintes au rôle `ADMIN`.
+  - Isolation multi-tenant stricte : `storeId` injecté côté serveur depuis le JWT (ou démo par défaut), toute valeur fournie par le client est ignorée/supprimée, requêtes scopées via `forStore`.
+- **Commandes COD & Transactions ACID :**
+  - Création de commande (`POST /api/orders`) avec verrouillage de stock pessimiste et transaction atomique, consultation des commandes du client (`GET /api/orders`) et annulation (`POST /api/orders/:id/cancel`).
+- **Documentation & Sécurité :**
+  - Spécification OpenAPI / Swagger UI interactive disponible sur `/api/docs`.
+  - Headers Helmet, limitation de débit globale et par utilisateur, sanitisation des logs pour exclure les mots de passe et jetons.
 - **Journal de bord (`docs/journal-de-prompts.md`) :** Documentation continue du vibe coding raisonné, des décisions techniques et des points clés pour la soutenance.
 
 > 🎓 Projet Fil Rouge — *Mobile Augmented AI* · Deadline : **24 octobre 2026**
@@ -432,33 +442,69 @@ Le thème mobile contient des tokens provisoires car le dépôt ne contient pas 
 | `DB_USER` | Utilisateur PostgreSQL | `postgres` |
 | `DB_PASSWORD` | Mot de passe PostgreSQL local | `password` |
 | `PORT` | Port du backend | `4000` |
-| `SEED_ADMIN_PASSWORD` | Mot de passe choisi pour le compte admin seedé (12 caractères minimum) | À définir localement |
+| `SEED_ADMIN_PASSWORD` | Mot de passe choisi pour le compte admin seedé (12 caractères min.) | À définir localement |
+| `JWT_SECRET` | Clé secrète de signature des jetons d'accès JWT | `une-cle-secrete-aleatoire-tres-longue` |
+| `JWT_EXPIRES_IN` | Durée de validité des jetons d'accès | `15m` |
+| `CORS_ORIGIN` | Domaines autorisés pour CORS | `http://localhost:8081,http://localhost:19006` |
+| `EXPO_PUBLIC_API_URL` | URL de base de l'API pour l'application mobile Expo | `http://localhost:4000` *(ou IP LAN)* |
 
-> Le backend lit actuellement les paramètres PostgreSQL, `PORT` et `SEED_ADMIN_PASSWORD`. Les paramètres JWT, LLM et MCP seront documentés avec les modules qui les utiliseront. Le fichier `.env` est dans `.gitignore`; ne commite jamais de vrais secrets. Les valeurs de connexion ci-dessus ne sont que pour le conteneur local.
+> Le fichier `.env` est exclu du contrôle de version (`.gitignore`). Ne commitez jamais de secrets réels. Seul `.env.example` sert de modèle.
 
 ---
 
 ## 🌐 API REST
 
+### Authentification & Session
 | Méthode | Route | Description | Accès |
 |---|---|---|---|
-| `GET` | `/health` | État du serveur | Public |
-| `POST` | `/api/auth/register` | Inscription | Public |
-| `POST` | `/api/auth/login` | Connexion | Public |
-| `POST` | `/api/auth/refresh` | Renouvellement du token | Public |
-| `POST` | `/api/auth/logout` | Déconnexion | 🔒 |
-| `GET` | `/api/products` | Catalogue du `ShopMate Demo Store` seedé | Public (démo) |
-| `GET` | `/api/products/:id` | Détail d'un produit | 🔒 |
-| `POST` | `/api/products` | Créer un produit | 👑 Admin |
-| `GET` | `/api/orders` | Commandes du client | 🔒 |
-| `POST` | `/api/orders` | Créer une commande | 🔒 |
-| `POST` | `/api/orders/:id/cancel` | Annuler une commande | 🔒 |
+| `POST` | `/api/auth/register` | Inscription nouveau compte client | Public |
+| `POST` | `/api/auth/login` | Connexion (retourne `accessToken` 15m + `refreshToken` 7j) | Public |
+| `POST` | `/api/auth/refresh` | Renouvellement de token avec rotation stricte | Public |
+| `POST` | `/api/auth/logout` | Déconnexion avec suppression du refresh token | Public / 🔒 |
+| `GET` | `/api/auth/me` | Informations du profil de l'utilisateur connecté | 🔒 Client/Admin |
+| `GET` | `/api/auth/admin-only` | Endpoint de vérification du rôle administrateur | 👑 Admin |
 
-> Dans cette étape, seules `GET /health` et `GET /api/products` sont implémentées. Les autres routes du tableau décrivent l'API cible et seront ajoutées dans les tâches correspondantes.
-| `POST` | `/api/documents` | Déposer un document RAG | 👑 Admin |
-| `POST` | `/api/agent/chat` | **Parler à l'agent (SSE)** | 🔒 |
-| `GET` | `/api/agent/conversations` | Historique | 🔒 |
-| `GET` | `/api/agent/logs` | Journal d'audit | 👑 Admin |
+### Produits & Catalogue
+| Méthode | Route | Description | Accès |
+|---|---|---|---|
+| `GET` | `/api/products` | Recherche plein texte (`iLike`), filtres (catégorie, prix), pagination | Public démo / 🔒 |
+| `GET` | `/api/products/:id` | Fiche détaillée d'un produit avec catégorie associée | Public démo / 🔒 |
+| `GET` | `/api/products/:id/stock` | Stock et prix en temps réel (données directes BDD sans hallucination) | Public démo / 🔒 |
+| `POST` | `/api/products` | Création de produit (SKU unique, validation Zod) | 👑 Admin |
+| `PUT` | `/api/products/:id` | Mise à jour de produit (scopé par `storeId`) | 👑 Admin |
+| `DELETE` | `/api/products/:id` | Suppression de produit | 👑 Admin |
+
+### Catégories
+| Méthode | Route | Description | Accès |
+|---|---|---|---|
+| `GET` | `/api/categories` | Liste des catégories de la boutique | Public démo / 🔒 |
+| `GET` | `/api/categories/:id` | Détail d'une catégorie | Public démo / 🔒 |
+| `POST` | `/api/categories` | Créer une catégorie (nom unique par boutique) | 👑 Admin |
+| `PUT` | `/api/categories/:id` | Mettre à jour une catégorie | 👑 Admin |
+| `DELETE` | `/api/categories/:id` | Supprimer une catégorie | 👑 Admin |
+
+### Commandes (Paiement à la livraison - COD)
+| Méthode | Route | Description | Accès |
+|---|---|---|---|
+| `GET` | `/api/orders` | Historique des commandes du client connecté | 🔒 Client |
+| `GET` | `/api/orders/:id` | Détail d'une commande avec lignes et articles | 🔒 Client |
+| `POST` | `/api/orders` | Passer une commande COD (transaction ACID + décrémentation stock) | 🔒 Client |
+| `POST` | `/api/orders/:id/cancel` | Annuler une commande en cours | 🔒 Client |
+
+### Documentation & Diagnostic
+| Méthode | Route | Description | Accès |
+|---|---|---|---|
+| `GET` | `/health` | Vérification de l'état du serveur | Public |
+| `GET` | `/api/docs` | Interface Swagger UI interactive | Public |
+| `GET` | `/api/docs/swagger.json` | Spécification OpenAPI 3.0 au format JSON | Public |
+
+### Assistant IA & RAG *(Prochaines étapes)*
+| Méthode | Route | Description | Accès |
+|---|---|---|---|
+| `POST` | `/api/documents` | Déposer un document RAG (FAQ, livraisons, retours) | 👑 Admin |
+| `POST` | `/api/agent/chat` | **Parler à l'assistant conversationnel (streaming SSE)** | 🔒 Client |
+| `GET` | `/api/agent/conversations` | Historique des conversations | 🔒 Client |
+| `GET` | `/api/agent/logs` | Journal d'audit des requêtes, outils et sources | 👑 Admin |
 
 ---
 
@@ -522,10 +568,10 @@ Le `Dockerfile` est **multi-stage** (build puis runtime léger). Le `docker-comp
 |:---:|---|:---:|
 | 1 | Cadrage, cahier des charges, UML/ERD, maquettes | 🟢 |
 | 2 | PostgreSQL + Sequelize, migrations, seed, pgvector | 🟢 |
-| 3 | Authentification JWT complète | 🟡 |
-| 4 | CRUD produits/commandes, Swagger + Postman | ⚪ |
-| 5 | Pipeline RAG (chunking, embeddings, recherche) | ⚪ |
-| 6 | Function calling (outils + confirmation) | ⚪ |
+| 3 | Authentification JWT complète (Backend + Mobile) | 🟢 |
+| 4 | CRUD produits, catégories, commandes COD, Swagger + Postman | 🟢 |
+| 5 | Pipeline RAG (chunking, embeddings, recherche cosinus) | 🟡 |
+| 6 | Function calling (8 outils + confirmation explicite) | ⚪ |
 | 7 | Streaming SSE + écran chat Expo | ⚪ |
 | 8 | Garde-fous, modération, audit | ⚪ |
 | 9 | Serveur MCP + n8n *(bonus)* | ⚪ |
@@ -544,7 +590,7 @@ Le `Dockerfile` est **multi-stage** (build puis runtime léger). Le `docker-comp
 | `docs/conception-uml.md` | Cas d'utilisation, diagramme de classes, séquence, ERD |
 | `docs/journal-de-prompts.md` | Vibe coding documenté — livrable évalué (sessions, bugs, décisions) |
 | `stitch_shopmate/shopmate_ai/DESIGN.md` | Design System, charte graphique et spécifications UI |
-| `http://localhost:4000/api/docs` | Documentation Swagger interactive (à venir) |
+| `http://localhost:4000/api/docs` | Documentation Swagger interactive (disponible en local) |
 
 ---
 
