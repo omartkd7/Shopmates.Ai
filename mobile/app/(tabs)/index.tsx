@@ -18,6 +18,7 @@ import {
   spacingTokens,
   typographyTokens,
 } from "@/src/theme/tokens";
+import { Loader, EmptyState, ErrorState } from "@/src/components";
 
 export default function CatalogScreen() {
   const products = useCatalogStore((state) => state.products);
@@ -78,21 +79,23 @@ export default function CatalogScreen() {
         renderItem={({ item }) => <ProductCard product={item} />}
         ListEmptyComponent={
           status === "loading" ? (
-            <View style={styles.messageState}>
-              <ActivityIndicator color={colorTokens.brand} />
-              <Text style={styles.messageText}>Chargement du catalogue...</Text>
-            </View>
+            <Loader message="Chargement du catalogue..." />
           ) : status === "error" ? (
-            <View style={styles.messageState}>
-              <Text style={styles.errorText}>{error}</Text>
-              <Pressable style={styles.retryButton} onPress={() => void loadProducts()}>
-                <Text style={styles.retryText}>Réessayer</Text>
-              </Pressable>
-            </View>
+            <ErrorState
+              message={error || "Impossible de charger les produits."}
+              onRetry={() => void loadProducts()}
+            />
           ) : (
-            <View style={styles.messageState}>
-              <Text style={styles.messageText}>Aucun produit ne correspond à cette recherche.</Text>
-            </View>
+            <EmptyState
+              icon="🔍"
+              title="Aucun produit trouvé"
+              description="Aucun article ne correspond à votre recherche ou catégorie sélectionnée."
+              actionTitle="Réinitialiser les filtres"
+              onAction={() => {
+                setSearch("");
+                setSelectedCategory("All");
+              }}
+            />
           )
         }
       />
