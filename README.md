@@ -74,6 +74,14 @@ L'application est **multi-tenant** : chaque donnée est rattachée à un `storeI
   - Collection et environnement Postman complets avec extraction automatique des tokens (`docs/ShopMate_AI.postman_collection.json`).
   - Headers Helmet, limitation de débit globale et par utilisateur, sanitisation des logs pour exclure les mots de passe et jetons.
 - **Journal de bord (`docs/journal-de-prompts.md`) :** Documentation continue du vibe coding raisonné, des décisions techniques et des points clés pour la soutenance.
+- **Pipeline RAG — Ingestion de documents (`src/services/rag.ts` + `POST /api/documents`) :**
+  - Upload de fichiers `.md`/`.txt` via `multipart/form-data` (Multer, max 2 Mo, ADMIN uniquement).
+  - Découpage en chunks de ~800 caractères avec chevauchement de 100 caractères, en respectant les frontières de paragraphes, de lignes et d'espaces.
+  - Génération d'embeddings 1536 dimensions en batch via **OpenAI `text-embedding-3-small`** (DeepSeek ne dispose pas d'endpoint d'embedding).
+  - Insertion atomique de tous les chunks avec leur vecteur dans pgvector (`VECTOR(1536)`) dans une seule transaction Sequelize.
+  - Re-ingestion (`PUT /api/documents/:id/reingest`) : suppression atomique des anciens chunks puis recréation complète.
+  - Suppression propre (`DELETE /api/documents/:id`) : chunks supprimés avant le document, dans une transaction.
+  - Variables d'environnement : `OPENAI_API_KEY`, `EMBEDDING_MODEL`, `DEEPSEEK_API_KEY`, `DEEPSEEK_BASE_URL`.
 
 > 🎓 Projet Fil Rouge — *Mobile Augmented AI* · Deadline : **24 octobre 2026**
 
