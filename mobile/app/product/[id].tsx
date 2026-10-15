@@ -117,7 +117,7 @@ export default function ProductDetailScreen() {
                 [
                   {
                     text: "Voir mes commandes",
-                    onPress: () => router.push("/(tabs)/orders"),
+                    onPress: () => router.push("/(tabs)/orders" as any),
                   },
                 ]
               );
