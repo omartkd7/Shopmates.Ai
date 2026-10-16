@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "seed": "tsx src/seed.ts",
+    "test:llm": "tsx src/scripts/test-llm.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],

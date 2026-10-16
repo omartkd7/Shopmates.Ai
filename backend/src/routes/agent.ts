@@ -157,7 +157,7 @@ agentRouter.post(
             // Audit log (sanitised — no raw embeddings or keys)
             await AgentLog.create({
               storeId,
-              agentName: LLM_MODEL,
+              agentName: process.env.LLM_MODEL ?? LLM_MODEL,
               action: "chat",
               status: "success",
               input: userText.slice(0, 500),
@@ -178,7 +178,7 @@ agentRouter.post(
           onError: async (err) => {
             await AgentLog.create({
               storeId,
-              agentName: LLM_MODEL,
+              agentName: process.env.LLM_MODEL ?? LLM_MODEL,
               action: "chat",
               status: "error",
               input: userText.slice(0, 500),
@@ -207,7 +207,7 @@ agentRouter.post(
 
       await AgentLog.create({
         storeId,
-        agentName: LLM_MODEL,
+        agentName: process.env.LLM_MODEL ?? LLM_MODEL,
         action: "chat",
         status: "success",
         input: userText.slice(0, 500),
@@ -224,9 +224,10 @@ agentRouter.post(
     } catch (err) {
       // Log the error before forwarding to global error handler
       try {
+        const activeModel = process.env.LLM_MODEL ?? LLM_MODEL;
         await AgentLog.create({
           storeId,
-          agentName: LLM_MODEL,
+          agentName: activeModel,
           action: "chat",
           status: "error",
           input: userText.slice(0, 500),

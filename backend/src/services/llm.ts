@@ -6,21 +6,39 @@ import type {
 } from "openai/resources/chat/completions";
 
 // ─── Provider-agnostic LLM client ────────────────────────────────────────────
-// Uses the OpenAI SDK format which DeepSeek, OpenAI and many others support.
-// Switch provider by changing LLM_BASE_URL + LLM_API_KEY + LLM_MODEL in .env
-// — zero code change required.
-const llmClient = new OpenAI({
-  apiKey: process.env.LLM_API_KEY || process.env.DEEPSEEK_API_KEY,
-  baseURL:
-    process.env.LLM_BASE_URL ??
-    process.env.DEEPSEEK_BASE_URL ??
-    "https://api.deepseek.com",
-  timeout: 30_000, // 30 s hard timeout per request
-  maxRetries: 1, // retry once on transient 5xx / network errors
-});
+// Uses the OpenAI SDK format which OpenAI, Claude (via compatible proxy/endpoint),
+// DeepSeek, and many other providers support.
+// Switch provider simply by setting LLM_BASE_URL + LLM_API_KEY + LLM_MODEL in .env.
+
+export function getLlmBaseUrl(): string | undefined {
+  if (process.env.LLM_BASE_URL) return process.env.LLM_BASE_URL;
+  if (process.env.DEEPSEEK_BASE_URL) return process.env.DEEPSEEK_BASE_URL;
+  const model = (process.env.LLM_MODEL || "").toLowerCase();
+  if (model.includes("deepseek")) return "https://api.deepseek.com";
+  // undefined allows the OpenAI SDK to default to official https://api.openai.com/v1
+  return undefined;
+}
+
+export function getLlmApiKey(): string {
+  return (
+    process.env.LLM_API_KEY ||
+    process.env.OPENAI_API_KEY ||
+    process.env.DEEPSEEK_API_KEY ||
+    ""
+  );
+}
+
+export function getLlmClient(): OpenAI {
+  return new OpenAI({
+    apiKey: getLlmApiKey(),
+    baseURL: getLlmBaseUrl(),
+    timeout: 30_000, // 30 s hard timeout per request
+    maxRetries: 2, // retry twice on transient 5xx / network errors
+  });
+}
 
 export const LLM_MODEL =
-  process.env.LLM_MODEL ?? "deepseek-chat";
+  process.env.LLM_MODEL ?? "gpt-4o-mini";
 
 /** Maximum tokens in the LLM response to control costs and latency. */
 const MAX_TOKENS = 1024;
@@ -91,6 +109,8 @@ export interface StreamCallbacks {
   onDone: (fullText: string) => void;
   /** Called if the stream errors */
   onError: (err: Error) => void;
+  /** Optional callback with accumulated tool calls for tool execution */
+  onToolCalls?: (toolCalls: any[]) => void;
 }
 
 // ─── Streaming chat completion ────────────────────────────────────────────────
@@ -101,7 +121,7 @@ export interface StreamCallbacks {
  * @param messages  Full message history (system prompt NOT included — caller
  *                  should prepend it via buildSystemPrompt)
  * @param tools     Optional tool definitions (function calling)
- * @param callbacks Handlers for tokens, completion, and errors
+ * @param callbacks Handlers for tokens, completion, errors, and tool calls
  */
 export async function streamChat(
   messages: LLMMessage[],
@@ -109,8 +129,11 @@ export async function streamChat(
   callbacks: StreamCallbacks
 ): Promise<void> {
   try {
-    const stream = await llmClient.chat.completions.create({
-      model: LLM_MODEL,
+    const client = getLlmClient();
+    const model = process.env.LLM_MODEL ?? LLM_MODEL;
+
+    const stream = await client.chat.completions.create({
+      model,
       messages,
       tools: tools && tools.length > 0 ? tools : undefined,
       tool_choice: tools && tools.length > 0 ? "auto" : undefined,
@@ -120,6 +143,7 @@ export async function streamChat(
     });
 
     let fullText = "";
+    const accumulatedToolCalls: any[] = [];
 
     for await (const chunk of stream as AsyncIterable<ChatCompletionChunk>) {
       const delta = chunk.choices[0]?.delta;
@@ -131,14 +155,39 @@ export async function streamChat(
         callbacks.onToken(delta.content);
       }
 
-      // Tool call detected — return the raw chunk for the caller to handle
-      // (tool execution happens in the agent route, not here)
+      // Tool call chunks
       if (delta.tool_calls) {
-        // Signal to caller via a special token marker
+        for (const tc of delta.tool_calls) {
+          const idx = tc.index;
+          if (!accumulatedToolCalls[idx]) {
+            accumulatedToolCalls[idx] = {
+              id: tc.id || "",
+              type: "function",
+              function: {
+                name: tc.function?.name || "",
+                arguments: tc.function?.arguments || "",
+              },
+            };
+          } else {
+            if (tc.id) accumulatedToolCalls[idx].id = tc.id;
+            if (tc.function?.name) {
+              accumulatedToolCalls[idx].function.name += tc.function.name;
+            }
+            if (tc.function?.arguments) {
+              accumulatedToolCalls[idx].function.arguments += tc.function.arguments;
+            }
+          }
+        }
+
+        // Signal to caller via a special token marker for backward compatibility
         callbacks.onToken(
           `\n__TOOL_CALL__:${JSON.stringify(delta.tool_calls)}`
         );
       }
+    }
+
+    if (accumulatedToolCalls.length > 0 && callbacks.onToolCalls) {
+      callbacks.onToolCalls(accumulatedToolCalls);
     }
 
     callbacks.onDone(fullText);
@@ -153,10 +202,15 @@ export async function streamChat(
  * Single-shot (non-streaming) completion for tool-result turns where
  * the LLM needs to summarise a function result before streaming to the user.
  */
-export async function chat(messages: LLMMessage[]): Promise<string> {
-  const response = await llmClient.chat.completions.create({
-    model: LLM_MODEL,
+export async function chat(messages: LLMMessage[], tools?: LLMTool[]): Promise<string> {
+  const client = getLlmClient();
+  const model = process.env.LLM_MODEL ?? LLM_MODEL;
+
+  const response = await client.chat.completions.create({
+    model,
     messages,
+    tools: tools && tools.length > 0 ? tools : undefined,
+    tool_choice: tools && tools.length > 0 ? "auto" : undefined,
     stream: false,
     max_tokens: MAX_TOKENS,
     temperature: 0.3,
