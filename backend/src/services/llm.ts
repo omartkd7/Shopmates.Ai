@@ -106,11 +106,15 @@ export interface StreamCallbacks {
   /** Called for each streamed text token */
   onToken: (token: string) => void;
   /** Called when the stream is complete. fullText = entire assembled response. */
-  onDone: (fullText: string) => void;
+  onDone: (fullText: string) => void | Promise<void>;
   /** Called if the stream errors */
-  onError: (err: Error) => void;
-  /** Optional callback with accumulated tool calls for tool execution */
-  onToolCalls?: (toolCalls: any[]) => void;
+  onError: (err: Error) => void | Promise<void>;
+  /**
+   * Called with the fully assembled tool calls once streaming is done.
+   * Awaited before onDone fires so the agent loop can execute tools
+   * and update messages before the next turn.
+   */
+  onToolCalls?: (toolCalls: any[]) => void | Promise<void>;
 }
 
 // ─── Streaming chat completion ────────────────────────────────────────────────
@@ -187,12 +191,12 @@ export async function streamChat(
     }
 
     if (accumulatedToolCalls.length > 0 && callbacks.onToolCalls) {
-      callbacks.onToolCalls(accumulatedToolCalls);
+      await callbacks.onToolCalls(accumulatedToolCalls);
     }
 
-    callbacks.onDone(fullText);
+    await callbacks.onDone(fullText);
   } catch (err: any) {
-    callbacks.onError(err instanceof Error ? err : new Error(String(err)));
+    await callbacks.onError(err instanceof Error ? err : new Error(String(err)));
   }
 }
 
