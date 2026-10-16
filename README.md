@@ -54,29 +54,24 @@ L'application est **multi-tenant** : chaque donnée est rattachée à un `storeI
 
 ### Dernière mise à jour
 
-- **Navigation Mobile & Système de Design (`stitch_shopmate`) :**
-  - **Layout à 4 onglets Expo Router :** Navigation fluide et réactive entre **Boutique** (`index`), **Assistant IA** (`chat`), **Commandes** (`orders`), et **Profil** (`profile`), suivant fidèlement les maquettes Figma et le design system.
-  - **Tokens de thème & Design System :** Palette complète extraite de `stitch_shopmate/shopmate_ai/DESIGN.md` (terracotta primaire `#9c3e23`, or COD `#F5A623`, surfaces douces `#fff8f6`, typographies Lexend, rayons et espacements).
-  - **Composants partagés réutilisables :** `Button` (variantes primary, secondary, outline, danger), `Input` (avec labels et bannières d'erreur), `Card` (surfaces modulaires), `Loader` (spinner thématisé), `EmptyState` (listes et recherches vides avec CTA), et `ErrorState` (avec bouton de nouvelle tentative).
-  - **Gestion cohérente des états :** Gestion uniforme du chargement, des données vides et des erreurs réseau sur l'ensemble des 4 écrans.
-- **Authentification complète (Backend & Mobile) :**
-  - **Backend :** Authentification JWT avec rotation de refresh tokens (`/api/auth/register`, `/api/auth/login`, `/api/auth/refresh`, `/api/auth/logout`, `/api/auth/me`). Hachage bcrypt, jetons de rafraîchissement stockés et hachés SHA-256 en base avec invalidation immédiate en cas de renouvellement ou déconnexion.
-  - **Mobile :** Écrans d'inscription et de connexion avec validation de formulaires et bannières d'erreur, persistance sécurisée dans `Expo SecureStore`, store d'état Zustand (`authStore`), intercepteur Axios avec mutex anti-concurrence sur 401 pour rafraîchir le jeton silencieusement, et route guards avec splash loader pour protéger l'application.
-- **Catalogue & Catégories (Backend SA-6 / SA-7) :**
-  - Recherche plein texte insensible à la casse (`iLike`), filtres par catégorie et fourchette de prix, pagination (`GET /api/products`).
-  - Endpoint temps réel `GET /api/products/:id/stock` fournissant le stock et le prix exacts en direct de la base de données sans hallucination LLM.
-  - CRUD complet des catégories (`/api/categories`) et mutations de produits (`POST`, `PUT`, `DELETE`) strictement restreintes au rôle `ADMIN`.
-  - Isolation multi-tenant stricte : `storeId` injecté côté serveur depuis le JWT (ou démo par défaut), toute valeur fournie par le client est ignorée/supprimée, requêtes scopées via `forStore`.
-- **Commandes COD & Transactions ACID :**
-  - Création de commande (`POST /api/orders`) avec verrouillage de stock pessimiste et transaction atomique, consultation des commandes du client (`GET /api/orders`), annulation avec réintégration des stocks (`POST /api/orders/:id/cancel`), et mise à jour du statut administrateur (`PATCH /api/orders/:id/status`).
-- **Documentation & Sécurité :**
-  - Spécification OpenAPI / Swagger UI interactive disponible sur `/api/docs`.
-  - Collection et environnement Postman complets avec extraction automatique des tokens (`docs/ShopMate_AI.postman_collection.json`).
-  - Headers Helmet, limitation de débit globale et par utilisateur, sanitisation des logs pour exclure les mots de passe et jetons.
-- **Journal de bord (`docs/journal-de-prompts.md`) :** Documentation continue du vibe coding raisonné, des décisions techniques et des points clés pour la soutenance.
-- **Catalogue Produits Mobile (Écrans Explore & Détail) :**
-  - **Écran Catalogue (`mobile/app/(tabs)/index.tsx`) :** Barre de recherche en temps réel, carrousel de filtres par catégorie avec pastilles actives, filtre par fourchette de prix, pagination / défilement infini, gestion des états (chargement squelette/spinner, catalogue vide avec CTA, bannières d'erreur avec rechargement).
-  - **Écran Fiche Produit (`mobile/app/product/[id].tsx`) :** Affichage galerie photos, titre, badges de catégorie, prix en Dirhams (DH), description complète, sélecteurs interactifs de tailles/variantes, indicateur de stock en temps réel, et bouton d'action directe pour passer commande.
+- **Function Calling — 8 outils agent + Validation Zod + Confirmation explicite (`src/services/agentTools.ts`, `src/services/orderConfirmation.ts`) :**
+  - **Allowlist stricte :** Seuls les 8 outils autorisés (`searchProducts`, `getProductDetails`, `checkStock`, `createOrder`, `getOrderStatus`, `listMyOrders`, `cancelOrder`, `getShipmentStatus`) sont acceptés ; tout appel d'outil inconnu est rejeté avec un message d'erreur sûr.
+  - **Validation Zod systématique :** Chaque appel d'outil est validé contre un schéma Zod avant exécution ; les arguments malformés ou manquants déclenchent un refus explicite.
+  - **Injection serveur-side :** `storeId` et `userId` sont toujours injectés depuis le JWT — jamais acceptés depuis la sortie du modèle. Toute valeur `storeId`/`customerId` dans les arguments du modèle est supprimée avant validation.
+  - **5 outils de lecture implémentés :** `searchProducts` (catalogue scopé), `getProductDetails`, `checkStock` (stock et prix depuis la BDD en direct, zéro hallucination), `getOrderStatus` et `listMyOrders` (isolation stricte par client authentifié).
+  - **Flux de confirmation 2 étapes pour les écritures :** `createOrder` et `cancelOrder` produisent d'abord un récapitulatif complet (produit, quantité, prix, adresse, COD) **sans aucune écriture en base**, stocké avec un token de confirmation lié à la conversation. L'écriture réelle n'a lieu qu'après un « Oui » explicite du client.
+  - **Transaction ACID + verrou pessimiste :** L'exécution confirmée se fait dans une transaction Sequelize avec `LOCK.UPDATE` sur les lignes de stock — impossible de sur-vendre même en cas de requêtes concurrentes.
+  - **Idempotence :** En cas de retry, si l'action a déjà été exécutée, le résultat mis en cache est retourné directement — aucun doublon de commande possible.
+  - **Max 3 appels d'outils par tour :** Limite configurable pour éviter les boucles coûteuses.
+  - **Scripts de test :** `npm run test:tools`, `npm run test:read-tools`, `npm run test:confirmation` valident les scénarios nominal, erreur et idempotence.
+- **Client LLM Provider-Agnostique & Agent Conversationnel (`src/services/llm.ts` + `POST /api/agent/chat`) :**
+  - **Provider-agnostique complet :** Piloté dynamiquement par `LLM_API_KEY`, `LLM_MODEL` et `LLM_BASE_URL` (compatible OpenAI `gpt-4o-mini`, Claude via OpenRouter/proxy, et DeepSeek `deepseek-chat` sans modification de code).
+  - **Streaming temps réel & Tool-Calling :** Support du streaming en Server-Sent Events (`text/event-stream`) avec accumulation et gestion des appels d'outils (`onToolCalls`).
+  - **Prompt système avec garde-fous stricts :** Rôle conseiller de vente ShopMate, détection automatique Français/Darija, réponses basées RAG avec citation des sources `(source : ...)`, séparation stricte (stock/prix direct depuis la base), règles de refus obligatoires (remises, prix, remboursements directs, conseils juridiques/médicaux).
+  - **Sécurité & Résilience :** Protection contre les injections de prompt (documents = données pures), limite de tokens (`1024`), timeout strict (30s) et retries automatiques sur erreurs réseau / 5xx.
+  - **Script de test & Validation :** Commande `npm run test:llm` (`src/scripts/test-llm.ts`) validant les 6 garde-fous du prompt système et exécutant un appel de test avec réponse streamée token par token.
+  - **Traçabilité :** Journalisation de chaque interaction dans `AgentLog` (modèle utilisé, statut, message utilisateur et assistant sans fuite de secrets).
+  - **Écran Chat Mobile (`mobile/app/(tabs)/chat.tsx`) :** Interface conversationnelle complète avec suggestions rapides, bulles de messages stylisées (utilisateur/assistant), intégration API `/api/agent/chat`, et affichage de l'état de chargement.
 - **Pipeline RAG — Ingestion de documents (`src/services/rag.ts` + `POST /api/documents`) :**
   - Upload de fichiers `.md`/`.txt` via `multipart/form-data` (Multer, max 2 Mo, ADMIN uniquement).
   - Découpage en chunks de ~800 caractères avec chevauchement de 100 caractères, en respectant les frontières de paragraphes, de lignes et d'espaces.
@@ -91,13 +86,19 @@ L'application est **multi-tenant** : chaque donnée est rattachée à un `storeI
   - Seuil de similarité `0.75` : en dessous, retourne un tableau vide → l'agent répond "Je n'ai pas cette information" (anti-hallucination).
   - Retourne les top 4-6 chunks avec le nom du document source et le score de similarité.
   - Route de test `GET /api/documents/search?q=...` pour valider la récupération depuis Postman.
-- **Client LLM Provider-Agnostique & Agent Conversationnel (`src/services/llm.ts` + `POST /api/agent/chat`) :**
-  - **Provider-agnostique complet :** Piloté dynamiquement par `LLM_API_KEY`, `LLM_MODEL` et `LLM_BASE_URL` (compatible OpenAI `gpt-4o-mini`, Claude via OpenRouter/proxy, et DeepSeek `deepseek-chat` sans modification de code).
-  - **Streaming temps réel & Tool-Calling :** Support du streaming en Server-Sent Events (`text/event-stream`) avec accumulation et gestion des appels d'outils (`onToolCalls`).
-  - **Prompt système avec garde-fous stricts :** Rôle conseiller de vente ShopMate, détection automatique Français/Darija, réponses basées RAG avec citation des sources `(source : ...)`, séparation stricte (stock/prix direct depuis la base), règles de refus obligatoires (remises, prix, remboursements directs, conseils juridiques/médicaux).
-  - **Sécurité & Résilience :** Protection contre les injections de prompt (documents = données pures), limite de tokens (`1024`), timeout strict (30s) et retries automatiques sur erreurs réseau / 5xx.
-  - **Script de test & Validation :** Commande `npm run test:llm` (`src/scripts/test-llm.ts`) validant les 6 garde-fous du prompt système et exécutant un appel de test avec réponse streamée token par token.
-  - **Traçabilité :** Journalisation de chaque interaction dans `AgentLog` (modèle utilisé, statut, message utilisateur et assistant sans fuite de secrets).
+- **Catalogue Produits Mobile (Écrans Explore & Détail) :**
+  - **Écran Catalogue (`mobile/app/(tabs)/index.tsx`) :** Barre de recherche en temps réel, carrousel de filtres par catégorie avec pastilles actives, filtre par fourchette de prix, pagination / défilement infini, gestion des états (chargement squelette/spinner, catalogue vide avec CTA, bannières d'erreur avec rechargement).
+  - **Écran Fiche Produit (`mobile/app/product/[id].tsx`) :** Affichage galerie photos, titre, badges de catégorie, prix en Dirhams (DH), description complète, sélecteurs interactifs de tailles/variantes, indicateur de stock en temps réel, et bouton d'action directe pour passer commande.
+- **Navigation Mobile & Système de Design (`stitch_shopmate`) :**
+  - **Layout à 4 onglets Expo Router :** Navigation fluide et réactive entre **Boutique** (`index`), **Assistant IA** (`chat`), **Commandes** (`orders`), et **Profil** (`profile`), suivant fidèlement les maquettes Figma et le design system.
+  - **Tokens de thème & Design System :** Palette complète extraite de `stitch_shopmate/shopmate_ai/DESIGN.md` (terracotta primaire `#9c3e23`, or COD `#F5A623`, surfaces douces `#fff8f6`, typographies Lexend, rayons et espacements).
+  - **Composants partagés réutilisables :** `Button`, `Input`, `Card`, `Loader`, `EmptyState`, `ErrorState`.
+- **Authentification complète (Backend & Mobile) :**
+  - **Backend :** JWT avec rotation de refresh tokens, hachage bcrypt, invalidation immédiate à la déconnexion.
+  - **Mobile :** Écrans login/register, persistance `Expo SecureStore`, store Zustand, intercepteur Axios 401 avec mutex anti-concurrence.
+- **Catalogue & Catégories, Commandes COD, Documentation & Sécurité :**
+  - CRUD produits/catégories (admin), commandes avec transaction ACID, Swagger UI, collection Postman, Helmet, rate limiting.
+- **Journal de bord (`docs/journal-de-prompts.md`) :** Documentation continue du vibe coding raisonné, des décisions techniques et des points clés pour la soutenance.
 
 
 > 🎓 Projet Fil Rouge — *Mobile Augmented AI* · Deadline : **24 octobre 2026**
@@ -617,8 +618,8 @@ Le `Dockerfile` est **multi-stage** (build puis runtime léger). Le `docker-comp
 | 3 | Authentification JWT complète (Backend + Mobile) | 🟢 |
 | 4 | CRUD produits, catégories, commandes COD, Swagger + Postman | 🟢 |
 | 5 | Pipeline RAG (ingestion, embeddings 1536 dim, recherche cosinus HNSW) | 🟢 |
-| 6 | Function calling (8 outils + validation Zod + confirmation explicite) | 🟡 |
-| 7 | Client LLM provider-agnostique (OpenAI/Claude/DeepSeek) & streaming SSE validé (`npm run test:llm`) · écran chat Expo | 🟡 |
+| 6 | Function calling (8 outils + validation Zod + confirmation explicite) | 🟢 |
+| 7 | Client LLM provider-agnostique (OpenAI/Claude/DeepSeek) & streaming SSE validé (`npm run test:llm`) · écran chat Expo | 🟢 |
 | 8 | Garde-fous, modération, audit (`AgentLog`) | 🟢 |
 | 9 | Serveur MCP + n8n *(bonus)* | ⚪ |
 | 10 | Docker + déploiement | ⚪ |
