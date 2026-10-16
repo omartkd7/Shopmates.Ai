@@ -18,6 +18,8 @@ import {
   type GetShipmentStatusArgs,
 } from "../schemas/agentTools";
 import { z } from "zod";
+import { Op } from "sequelize";
+import { Product, Order, OrderItem, Customer, User, forStore } from "../models";
 
 /**
  * Allowlist of the exact 8 tools that ShopMate AI is permitted to invoke.
@@ -52,6 +54,7 @@ export const MAX_TOOL_CALLS_PER_TURN = 3;
 export interface ToolExecutionContext {
   storeId: number;
   userId: number;
+  email?: string;
 }
 
 /**
@@ -330,6 +333,320 @@ export function validateToolCall(
     context: {
       storeId: context.storeId,
       userId: context.userId,
+      email: context.email,
     },
   };
 }
+
+// ─── Customer Resolution Helper ───────────────────────────────────────────────
+
+/**
+ * Resolves or creates the Customer record associated with the authenticated User.
+ * Strictly bounded by storeId and the user's verified identity.
+ */
+export async function getCustomerForContext(
+  context: ToolExecutionContext
+): Promise<Customer | null> {
+  const { storeId, userId, email } = context;
+
+  if (email) {
+    const existingCustomer = await Customer.findOne({
+      where: { storeId, email },
+    });
+    if (existingCustomer) return existingCustomer;
+  }
+
+  const user = await User.findOne({
+    where: { id: userId, storeId },
+  });
+  if (!user) return null;
+
+  const [customer] = await Customer.findOrCreate({
+    where: { storeId, email: user.email },
+    defaults: {
+      storeId,
+      email: user.email,
+      name: user.name,
+    },
+  });
+
+  return customer;
+}
+
+// ─── The 5 Read Tools Implementations ─────────────────────────────────────────
+
+/**
+ * 1. searchProducts
+ * Searches store catalogue by query, category, or price range.
+ * Scoped strictly by storeId.
+ */
+export async function searchProductsTool(
+  args: SearchProductsArgs,
+  context: ToolExecutionContext
+): Promise<Record<string, any>> {
+  const whereClause: any = {};
+
+  if (args.query) {
+    whereClause[Op.or] = [
+      { name: { [Op.iLike]: `%${args.query}%` } },
+      { description: { [Op.iLike]: `%${args.query}%` } },
+    ];
+  }
+
+  if (args.categoryId) {
+    whereClause.categoryId = args.categoryId;
+  }
+
+  if (args.minPrice !== undefined || args.maxPrice !== undefined) {
+    const priceFilter: any = {};
+    if (args.minPrice !== undefined) priceFilter[Op.gte] = args.minPrice;
+    if (args.maxPrice !== undefined) priceFilter[Op.lte] = args.maxPrice;
+    whereClause.price = priceFilter;
+  }
+
+  const products = (await forStore(Product, context.storeId).findAll({
+    where: whereClause,
+    include: [
+      {
+        association: "category",
+        attributes: ["id", "name"],
+        required: false,
+      },
+    ],
+    limit: 10,
+    order: [["id", "ASC"]],
+  })) as Product[];
+
+  return {
+    storeId: context.storeId,
+    totalFound: products.length,
+    products: products.map((p) => ({
+      id: p.id,
+      name: p.name,
+      price: Number(p.price),
+      stock: p.stock,
+      inStock: p.stock > 0,
+      category: (p as any).category ? (p as any).category.name : null,
+    })),
+  };
+}
+
+/**
+ * 2. getProductDetails
+ * Retrieve full details of a single product.
+ * Returns error if product does not exist in the current store.
+ */
+export async function getProductDetailsTool(
+  args: GetProductDetailsArgs,
+  context: ToolExecutionContext
+): Promise<Record<string, any>> {
+  const product = (await forStore(Product, context.storeId).findOne({
+    where: { id: args.productId },
+    include: [
+      {
+        association: "category",
+        attributes: ["id", "name"],
+        required: false,
+      },
+    ],
+  })) as Product | null;
+
+  if (!product) {
+    return {
+      error: `Produit #${args.productId} non trouvé dans cette boutique.`,
+    };
+  }
+
+  return {
+    id: product.id,
+    name: product.name,
+    description: product.description,
+    price: Number(product.price),
+    stock: product.stock,
+    inStock: product.stock > 0,
+    sku: product.sku,
+    category: (product as any).category ? (product as any).category.name : null,
+  };
+}
+
+/**
+ * 3. checkStock
+ * Live database query for price and stock availability.
+ * Never hallucinated or guessed by the model.
+ */
+export async function checkStockTool(
+  args: CheckStockArgs,
+  context: ToolExecutionContext
+): Promise<Record<string, any>> {
+  const product = (await forStore(Product, context.storeId).findOne({
+    where: { id: args.productId },
+    attributes: ["id", "name", "price", "stock"],
+  })) as Product | null;
+
+  if (!product) {
+    return {
+      error: `Produit #${args.productId} introuvable dans cette boutique.`,
+    };
+  }
+
+  const inStock = product.stock > 0;
+  return {
+    productId: product.id,
+    name: product.name,
+    price: Number(product.price),
+    stock: product.stock,
+    inStock,
+    message: inStock
+      ? `Le produit "${product.name}" est disponible en stock (${product.stock} unité(s)) au prix de ${product.price} DH.`
+      : `Le produit "${product.name}" est actuellement en rupture de stock.`,
+  };
+}
+
+/**
+ * 4. getOrderStatus
+ * Checks status of an order for the authenticated customer only.
+ * Returns safe error if the order belongs to another customer or store.
+ */
+export async function getOrderStatusTool(
+  args: GetOrderStatusArgs,
+  context: ToolExecutionContext
+): Promise<Record<string, any>> {
+  const customer = await getCustomerForContext(context);
+  if (!customer) {
+    return {
+      error: "Aucun profil client trouvé pour ce compte.",
+    };
+  }
+
+  // Strict tenant AND customer isolation
+  const order = (await forStore(Order, context.storeId).findOne({
+    where: {
+      id: args.orderId,
+      customerId: customer.id,
+    },
+    include: [
+      {
+        association: "items",
+        include: [
+          {
+            association: "product",
+            attributes: ["id", "name", "price"],
+          },
+        ],
+      },
+    ],
+  })) as Order | null;
+
+  if (!order) {
+    return {
+      error: `Commande #${args.orderId} introuvable ou vous n'avez pas l'autorisation d'y accéder.`,
+    };
+  }
+
+  return {
+    orderId: order.id,
+    status: order.status,
+    total: Number(order.total),
+    createdAt: order.createdAt,
+    items: ((order as any).items || []).map((item: any) => ({
+      name: item.product?.name ?? `Article #${item.productId}`,
+      quantity: item.quantity,
+      unitPrice: Number(item.unitPrice),
+    })),
+  };
+}
+
+/**
+ * 5. listMyOrders
+ * Lists recent orders belonging exclusively to the authenticated customer.
+ */
+export async function listMyOrdersTool(
+  args: ListMyOrdersArgs,
+  context: ToolExecutionContext
+): Promise<Record<string, any>> {
+  const customer = await getCustomerForContext(context);
+  if (!customer) {
+    return { orders: [] };
+  }
+
+  const limit = Math.min(Math.max(args.limit ?? 5, 1), 20);
+
+  const orders = (await forStore(Order, context.storeId).findAll({
+    where: { customerId: customer.id },
+    limit,
+    order: [["createdAt", "DESC"]],
+    include: [
+      {
+        association: "items",
+        include: [
+          {
+            association: "product",
+            attributes: ["id", "name", "price"],
+          },
+        ],
+      },
+    ],
+  })) as Order[];
+
+  return {
+    orders: orders.map((o) => ({
+      orderId: o.id,
+      status: o.status,
+      total: Number(o.total),
+      createdAt: o.createdAt,
+      itemsCount: ((o as any).items || []).length,
+    })),
+  };
+}
+
+// ─── Tool Dispatcher ──────────────────────────────────────────────────────────
+
+/**
+ * Dispatcher: Validates tool call arguments with Zod and executes the tool.
+ * Returns safe JSON result or safe error object.
+ */
+export async function executeToolCall(
+  name: string,
+  rawArguments: string | Record<string, any>,
+  context: ToolExecutionContext
+): Promise<Record<string, any>> {
+  const validation = validateToolCall(name, rawArguments, context);
+  if (!validation.success) {
+    return { error: validation.error };
+  }
+
+  try {
+    switch (validation.toolName) {
+      case "searchProducts":
+        return await searchProductsTool(validation.args, validation.context);
+      case "getProductDetails":
+        return await getProductDetailsTool(validation.args, validation.context);
+      case "checkStock":
+        return await checkStockTool(validation.args, validation.context);
+      case "getOrderStatus":
+        return await getOrderStatusTool(validation.args, validation.context);
+      case "listMyOrders":
+        return await listMyOrdersTool(validation.args, validation.context);
+      case "createOrder":
+      case "cancelOrder":
+        return {
+          requiresConfirmation: !validation.args.confirmed,
+          status: "write_tool_pending",
+          tool: validation.toolName,
+          args: validation.args,
+        };
+      case "getShipmentStatus":
+        return {
+          status: "mcp_tracking_pending",
+          message: "Suivi transporteur via MCP en cours d'intégration.",
+        };
+      default:
+        return { error: `Outil non supporté: ${name}` };
+    }
+  } catch (err: any) {
+    return {
+      error: `Erreur lors de l'exécution de l'outil "${name}" : ${err.message}`,
+    };
+  }
+}
+
