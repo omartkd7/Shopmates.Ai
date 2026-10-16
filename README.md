@@ -92,12 +92,12 @@ L'application est **multi-tenant** : chaque donnée est rattachée à un `storeI
   - Retourne les top 4-6 chunks avec le nom du document source et le score de similarité.
   - Route de test `GET /api/documents/search?q=...` pour valider la récupération depuis Postman.
 - **Client LLM Provider-Agnostique & Agent Conversationnel (`src/services/llm.ts` + `POST /api/agent/chat`) :**
-  - Compatible DeepSeek, OpenAI ou Claude via API OpenAI-compatible (`LLM_BASE_URL`, `LLM_API_KEY`, `LLM_MODEL`).
-  - Gestion des flux streaming (Server-Sent Events `text/event-stream`) et mode JSON classique.
-  - Prompt système strict : rôle conseiller de vente ShopMate, détection automatique Français/Darija, réponses basées RAG avec citation des sources, règles de refus (prix, remises, remboursements directs, conseils juridiques/médicaux).
-  - Protection contre les injections de prompt : le contexte documentaire RAG est traité comme des données pures, pas des instructions.
-  - Limite de tokens (`1024`), timeout (30s) et retry automatique sur erreurs temporaires.
-  - Traçabilité et audit dans `AgentLog` pour chaque tour de conversation.
+  - **Provider-agnostique complet :** Piloté dynamiquement par `LLM_API_KEY`, `LLM_MODEL` et `LLM_BASE_URL` (compatible OpenAI `gpt-4o-mini`, Claude via OpenRouter/proxy, et DeepSeek `deepseek-chat` sans modification de code).
+  - **Streaming temps réel & Tool-Calling :** Support du streaming en Server-Sent Events (`text/event-stream`) avec accumulation et gestion des appels d'outils (`onToolCalls`).
+  - **Prompt système avec garde-fous stricts :** Rôle conseiller de vente ShopMate, détection automatique Français/Darija, réponses basées RAG avec citation des sources `(source : ...)`, séparation stricte (stock/prix direct depuis la base), règles de refus obligatoires (remises, prix, remboursements directs, conseils juridiques/médicaux).
+  - **Sécurité & Résilience :** Protection contre les injections de prompt (documents = données pures), limite de tokens (`1024`), timeout strict (30s) et retries automatiques sur erreurs réseau / 5xx.
+  - **Script de test & Validation :** Commande `npm run test:llm` (`src/scripts/test-llm.ts`) validant les 6 garde-fous du prompt système et exécutant un appel de test avec réponse streamée token par token.
+  - **Traçabilité :** Journalisation de chaque interaction dans `AgentLog` (modèle utilisé, statut, message utilisateur et assistant sans fuite de secrets).
 
 
 > 🎓 Projet Fil Rouge — *Mobile Augmented AI* · Deadline : **24 octobre 2026**
@@ -486,8 +486,8 @@ Le thème mobile et les composants partagés respectent fidèlement la charte gr
 | `DEEPSEEK_API_KEY` | Clé API DeepSeek pour la génération conversationnelle | `sk-...` |
 | `DEEPSEEK_BASE_URL` | URL de base de l'API DeepSeek | `https://api.deepseek.com` |
 | `LLM_API_KEY` | Clé d'accès du client LLM provider-agnostique | `sk-...` |
-| `LLM_BASE_URL` | Endpoint du provider LLM (DeepSeek, OpenAI, etc.) | `https://api.deepseek.com` |
-| `LLM_MODEL` | Modèle de chat utilisé par l'agent | `deepseek-chat` *(ou `gpt-4o-mini`)* |
+| `LLM_BASE_URL` | Endpoint du provider LLM (optionnel pour OpenAI, requis pour DeepSeek ou proxy Claude) | `https://api.openai.com/v1` *(ou `https://api.deepseek.com`)* |
+| `LLM_MODEL` | Modèle de chat utilisé par l'agent | `gpt-4o-mini`, `deepseek-chat`, ou `anthropic/claude-3.5-sonnet` |
 | `EXPO_PUBLIC_API_URL` | URL de base de l'API pour l'application mobile Expo | `http://localhost:4000` *(ou IP LAN)* |
 
 > Le fichier `.env` est exclu du contrôle de version (`.gitignore`). Ne commitez jamais de secrets réels. Seul `.env.example` sert de modèle.
@@ -618,7 +618,7 @@ Le `Dockerfile` est **multi-stage** (build puis runtime léger). Le `docker-comp
 | 4 | CRUD produits, catégories, commandes COD, Swagger + Postman | 🟢 |
 | 5 | Pipeline RAG (ingestion, embeddings 1536 dim, recherche cosinus HNSW) | 🟢 |
 | 6 | Function calling (8 outils + validation Zod + confirmation explicite) | 🟡 |
-| 7 | Streaming SSE + Client LLM provider-agnostique (DeepSeek/OpenAI) + écran chat Expo | 🟡 |
+| 7 | Client LLM provider-agnostique (OpenAI/Claude/DeepSeek) & streaming SSE validé (`npm run test:llm`) · écran chat Expo | 🟡 |
 | 8 | Garde-fous, modération, audit (`AgentLog`) | 🟢 |
 | 9 | Serveur MCP + n8n *(bonus)* | ⚪ |
 | 10 | Docker + déploiement | ⚪ |
