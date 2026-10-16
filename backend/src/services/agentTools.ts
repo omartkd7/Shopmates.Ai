@@ -47,6 +47,12 @@ export function isAllowedTool(name: string): name is AllowedToolName {
  */
 export const MAX_TOOL_CALLS_PER_TURN = 3;
 
+import {
+  initiateCreateOrderRecap,
+  initiateCancelOrderRecap,
+  executeConfirmedAction,
+} from "./orderConfirmation";
+
 /**
  * Context injected strictly server-side from JWT authentication.
  * The model NEVER controls or provides these values.
@@ -55,6 +61,7 @@ export interface ToolExecutionContext {
   storeId: number;
   userId: number;
   email?: string;
+  conversationId?: number;
 }
 
 /**
@@ -334,6 +341,7 @@ export function validateToolCall(
       storeId: context.storeId,
       userId: context.userId,
       email: context.email,
+      conversationId: context.conversationId,
     },
   };
 }
@@ -627,14 +635,28 @@ export async function executeToolCall(
         return await getOrderStatusTool(validation.args, validation.context);
       case "listMyOrders":
         return await listMyOrdersTool(validation.args, validation.context);
-      case "createOrder":
-      case "cancelOrder":
-        return {
-          requiresConfirmation: !validation.args.confirmed,
-          status: "write_tool_pending",
-          tool: validation.toolName,
-          args: validation.args,
-        };
+      case "createOrder": {
+        const convId = context.conversationId || 0;
+        if (!validation.args.confirmed) {
+          // Never write on the first request: produce recap & ask confirmation
+          return await initiateCreateOrderRecap(validation.args, {
+            ...validation.context,
+            conversationId: convId,
+          });
+        }
+        // Write happens only after explicit confirmation
+        return await executeConfirmedAction(convId, validation.context);
+      }
+      case "cancelOrder": {
+        const convId = context.conversationId || 0;
+        if (!validation.args.confirmed) {
+          return await initiateCancelOrderRecap(validation.args, {
+            ...validation.context,
+            conversationId: convId,
+          });
+        }
+        return await executeConfirmedAction(convId, validation.context);
+      }
       case "getShipmentStatus":
         return {
           status: "mcp_tracking_pending",

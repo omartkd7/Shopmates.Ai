@@ -3,6 +3,12 @@ import { AgentLog, Conversation, Message, forStore } from "../models";
 import { authenticate, injectTenant, requireRole, validate } from "../middlewares";
 import { retrieveContext } from "../services/rag";
 import { streamChat, chat, buildSystemPrompt, LLM_MODEL, type LLMMessage } from "../services/llm";
+import { AGENT_TOOLS } from "../services/agentTools";
+import {
+  hasPendingConfirmation,
+  executeConfirmedAction,
+  isAffirmativeConfirmation,
+} from "../services/orderConfirmation";
 import { z } from "zod";
 
 const agentRouter = Router();
@@ -67,6 +73,73 @@ agentRouter.post(
         role: "user",
         content: userText,
       });
+
+      // ── 2.5 Explicit Confirmation Check ("Oui" -> execute pending action) ──
+      if (
+        isAffirmativeConfirmation(userText) &&
+        hasPendingConfirmation(conversation.id)
+      ) {
+        const executionResult = await executeConfirmedAction(conversation.id, {
+          storeId,
+          userId: user.userId,
+          email: user.email,
+          conversationId: conversation.id,
+        });
+
+        const replyMessage =
+          executionResult.message ||
+          (executionResult.success
+            ? "✅ Votre commande a été validée avec succès !"
+            : `❌ ${executionResult.error}`);
+
+        const assistantMsg = await Message.create({
+          storeId,
+          conversationId: conversation.id,
+          role: "assistant",
+          content: replyMessage,
+        });
+
+        await AgentLog.create({
+          storeId,
+          agentName: process.env.LLM_MODEL ?? LLM_MODEL,
+          action: "order_confirmation",
+          status: executionResult.success ? "success" : "error",
+          input: userText.slice(0, 500),
+          output: replyMessage.slice(0, 500),
+        });
+
+        if (isSSE) {
+          res.setHeader("Content-Type", "text/event-stream");
+          res.setHeader("Cache-Control", "no-cache");
+          res.setHeader("Connection", "keep-alive");
+          res.setHeader("X-Accel-Buffering", "no");
+
+          res.write(
+            `data: ${JSON.stringify({ type: "start", conversationId: conversation.id })}\n\n`
+          );
+          res.write(
+            `data: ${JSON.stringify({ type: "token", token: replyMessage })}\n\n`
+          );
+          res.write(
+            `data: ${JSON.stringify({
+              type: "done",
+              conversationId: conversation.id,
+              messageId: assistantMsg.id,
+              orderConfirmed: true,
+              orderId: executionResult.orderId,
+            })}\n\n`
+          );
+          return res.end();
+        }
+
+        return res.json({
+          conversationId: conversation.id,
+          messageId: assistantMsg.id,
+          response: replyMessage,
+          orderConfirmed: true,
+          orderId: executionResult.orderId,
+        });
+      }
 
       // ── 3. Retrieve RAG context (always filtered by storeId from JWT) ─────
       const ragChunks = await retrieveContext(userText, storeId);
@@ -135,7 +208,7 @@ agentRouter.post(
 
         let fullResponse = "";
 
-        await streamChat(messages, undefined, {
+        await streamChat(messages, AGENT_TOOLS, {
           onToken: (token) => {
             // Don't forward internal tool-call markers to the client in this task
             if (!token.startsWith("\n__TOOL_CALL__:")) {
