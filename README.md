@@ -54,6 +54,20 @@ L'application est **multi-tenant** : chaque donnée est rattachée à un `storeI
 
 ### Dernière mise à jour
 
+- **Streaming SSE temps réel & Persistance de l'historique (`POST /api/agent/chat` & `GET /api/agent/conversations`) :**
+  - **Streaming SSE token par token :** Support complet de `text/event-stream` avec flush immédiat des headers (`res.flushHeaders()`) et neutralisation du buffering proxy (`X-Accel-Buffering: no`).
+  - **Protocole d'événements typés :** Émission en temps réel des événements `start` (id conversation), `source` (chunks RAG avec similarités), `tool_call` & `tool_result` (télémétrie des outils), `token` (morceaux de réponse), `confirmation` (état de commande COD), `done` (bilan final) et `error`.
+  - **Gestion proactive de la déconnexion client :** Détection de la fermeture de connexion via `req.on("close")` déclenchant `AbortController.abort()` sur l'appel LLM pour interrompre immédiatement la consommation de tokens.
+  - **Rate limiting par utilisateur :** Middleware `agentRateLimiter` limitant chaque utilisateur authentifié à **20 messages par minute** (protection anti-abus et maîtrise des coûts).
+  - **Persistance en base de données :** Enregistrement automatique des conversations (`Conversation`) et des messages (`Message`), avec ordonnancement chronologique des échanges et isolation stricte par `storeId`.
+  - **Endpoints d'historique :** `GET /api/agent/conversations` (liste des conversations avec messages ordonnés) et `GET /api/agent/conversations/:id` (détail d'une conversation).
+- **Écran de Chat Mobile avec client SSE autonome (`mobile/app/(tabs)/chat.tsx` & `mobile/src/api/agentChat.ts`) :**
+  - **Client SSE Expo / React Native :** Implémentation basée sur `XMLHttpRequest` (`onprogress` / `readyState === 3`) sans dépendances natives externes (compatible Expo Go et Android/iOS/Web).
+  - **Rendu progressif token par token :** Affichage fluide et dynamique de la réponse au fil de l'eau avec auto-scroll automatique vers le bas.
+  - **Télémétrie en direct de l'agent :** Indicateurs contextuels (*"🔍 Consultation du catalogue..."*, *"📦 Accès aux commandes..."*).
+  - **Citations de sources RAG :** Badges cliquables affichant le nom du document source et son score de confiance.
+  - **Gestion des erreurs & réessai :** Prise en charge des déconnexions et du rate limit HTTP 429 avec bandeau d'alerte et bouton **"🔄 Réessayer"**.
+  - **Arrêt à la demande :** Bouton **"Arrêter"** dans le header et annulation automatique du flux au démontage du composant (`useEffect` cleanup).
 - **Function Calling — 8 outils agent + Validation Zod + Confirmation explicite (`src/services/agentTools.ts`, `src/services/orderConfirmation.ts`) :**
   - **Allowlist stricte :** Seuls les 8 outils autorisés (`searchProducts`, `getProductDetails`, `checkStock`, `createOrder`, `getOrderStatus`, `listMyOrders`, `cancelOrder`, `getShipmentStatus`) sont acceptés ; tout appel d'outil inconnu est rejeté avec un message d'erreur sûr.
   - **Validation Zod systématique :** Chaque appel d'outil est validé contre un schéma Zod avant exécution ; les arguments malformés ou manquants déclenchent un refus explicite.
@@ -551,6 +565,7 @@ Le thème mobile et les composants partagés respectent fidèlement la charte gr
 | `GET` | `/api/documents/search` | Recherche sémantique cosinus (`q=...`, seuil 0.75, top 4-6 chunks avec scores) | 🔒 Client/Admin |
 | `POST` | `/api/agent/chat` | **Parler à l'assistant conversationnel (mode streaming SSE ou JSON)** | 🔒 Client |
 | `GET` | `/api/agent/conversations` | Historique des conversations du client connecté | 🔒 Client |
+| `GET` | `/api/agent/conversations/:id` | Récupérer une conversation spécifique avec ses messages ordonnés | 🔒 Client |
 | `GET` | `/api/agent/logs` | Journal d'audit des requêtes, outils appelés et sources documentaires | 👑 Admin |
 
 ---
@@ -619,11 +634,12 @@ Le `Dockerfile` est **multi-stage** (build puis runtime léger). Le `docker-comp
 | 4 | CRUD produits, catégories, commandes COD, Swagger + Postman | 🟢 |
 | 5 | Pipeline RAG (ingestion, embeddings 1536 dim, recherche cosinus HNSW) | 🟢 |
 | 6 | Function calling (8 outils + validation Zod + confirmation explicite) | 🟢 |
-| 7 | Client LLM provider-agnostique (OpenAI/Claude/DeepSeek) & streaming SSE validé (`npm run test:llm`) · écran chat Expo | 🟢 |
-| 8 | Garde-fous, modération, audit (`AgentLog`) | 🟢 |
-| 9 | Serveur MCP + n8n *(bonus)* | ⚪ |
-| 10 | Docker + déploiement | ⚪ |
-| 11 | Journal de prompts, documentation, soutenance | ⚪ |
+| 7 | Client LLM provider-agnostique (OpenAI/Claude/DeepSeek) & streaming SSE (`POST /api/agent/chat`) | 🟢 |
+| 8 | Écran chat mobile React Native / Expo avec client SSE streaming, auto-scroll, annulation et gestion 429 | 🟢 |
+| 9 | Garde-fous, modération, audit (`AgentLog`) | 🟢 |
+| 10 | Serveur MCP + n8n *(bonus)* | ⚪ |
+| 11 | Docker + déploiement | ⚪ |
+| 12 | Journal de prompts, documentation, soutenance | ⚪ |
 
 🟢 fait · 🟡 en cours · ⚪ à faire
 
