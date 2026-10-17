@@ -111,13 +111,14 @@ agentRouter.post(
         });
       }
 
-      // ── 2. Persist user Message ───────────────────────────────────────────────
+      // ── 2. Persist user Message & bump conversation timestamp ────────────────
       await Message.create({
         storeId,
         conversationId: conversation.id,
         role: "user",
         content: userText,
       });
+      await conversation.update({ updatedAt: new Date() });
 
       // ── 2.5 Explicit Confirmation Check ("Oui" → execute pending action) ──────
       if (isAffirmativeConfirmation(userText) && hasPendingConfirmation(conversation.id)) {

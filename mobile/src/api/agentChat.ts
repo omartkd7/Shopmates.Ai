@@ -201,22 +201,34 @@ export async function streamAgentChat(
   };
 }
 
+export interface ConversationSummary {
+  id: number;
+  title: string;
+  updatedAt: string;
+  messages: Array<{
+    id: number;
+    role: "user" | "assistant";
+    content: string;
+    createdAt: string;
+  }>;
+}
+
 /**
  * Fetch customer's past conversation history from the backend.
  */
-export async function fetchConversationHistory() {
+export async function fetchConversationHistory(): Promise<ConversationSummary[]> {
   const response = await apiClient.get<{
-    conversations: Array<{
-      id: number;
-      title: string;
-      updatedAt: string;
-      messages: Array<{
-        id: number;
-        role: "user" | "assistant";
-        content: string;
-        createdAt: string;
-      }>;
-    }>;
+    conversations: ConversationSummary[];
   }>("/api/agent/conversations");
   return response.data.conversations;
+}
+
+/**
+ * Fetch a single conversation with all its messages.
+ */
+export async function fetchSingleConversation(id: number): Promise<ConversationSummary> {
+  const response = await apiClient.get<{
+    conversation: ConversationSummary;
+  }>(`/api/agent/conversations/${id}`);
+  return response.data.conversation;
 }

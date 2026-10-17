@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import {
   FlatList,
   KeyboardAvoidingView,
@@ -10,6 +10,7 @@ import {
   TextInput,
   View,
   ActivityIndicator,
+  Modal,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
@@ -18,6 +19,7 @@ import {
   fetchConversationHistory,
   ActiveStream,
   ChatSource,
+  ConversationSummary,
 } from "@/src/api/agentChat";
 import { useAuthStore } from "@/src/stores/authStore";
 import {
@@ -71,18 +73,43 @@ const INITIAL_SUGGESTIONS = [
   "Suivre ma commande en cours",
 ];
 
+function formatConversationDate(dateStr: string): string {
+  try {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffHours = diffMs / (1000 * 60 * 60);
+
+    if (diffHours < 24 && now.getDate() === date.getDate()) {
+      return `Aujourd'hui à ${date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
+    }
+    if (diffHours < 48) {
+      return `Hier à ${date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
+    }
+    return date.toLocaleDateString([], { day: "numeric", month: "short" });
+  } catch {
+    return dateStr;
+  }
+}
+
 export default function ChatScreen() {
   const router = useRouter();
   const user = useAuthStore((state) => state.user);
+
   const [conversationId, setConversationId] = useState<number | undefined>(undefined);
+  const [conversations, setConversations] = useState<ConversationSummary[]>([]);
+  const [isHistoryModalVisible, setIsHistoryModalVisible] = useState(false);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: "welcome-1",
       sender: "assistant",
-      text: `Bonjour ${user?.name ? user.name : ""} ! Je suis ShopMate AI, votre conseiller d'achat en paiement à la livraison (Cash on Delivery). Comment puis-je vous aider ?`,
+      text: `Bonjour ${user?.name ? user.name : ""} ! Je suis ShopMate AI, votre assistant d'achat en paiement à la livraison (COD). Posez-moi vos questions ou choisissez une conversation précédente.`,
       timestamp: "À l'instant",
     },
   ]);
+
   const [input, setInput] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [agentStatus, setAgentStatus] = useState<string | null>(null);
@@ -91,54 +118,114 @@ export default function ChatScreen() {
   const flatListRef = useRef<FlatList>(null);
   const activeStreamRef = useRef<ActiveStream | null>(null);
 
-  // ── Load past conversation on mount ──────────────────────────────────────────
-  useEffect(() => {
-    let isMounted = true;
+  // ── Helper to convert DB messages to ChatMessage items ─────────────────────
+  const mapDbMessagesToChat = useCallback(
+    (dbMessages: ConversationSummary["messages"]): ChatMessage[] => {
+      return dbMessages.map((m) => {
+        let createdOrder: CreatedOrderData | undefined;
+        const orderMatch = m.content.match(/Commande\s*#(\d+)/i);
+        if (m.role === "assistant" && orderMatch) {
+          createdOrder = { orderId: parseInt(orderMatch[1], 10) };
+        }
 
-    async function loadPastChat() {
+        return {
+          id: `msg-${m.id}`,
+          sender: m.role,
+          text: m.content,
+          timestamp: new Date(m.createdAt).toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+          createdOrder,
+        };
+      });
+    },
+    []
+  );
+
+  // ── Fetch conversations list from backend ──────────────────────────────────
+  const refreshConversationsList = useCallback(
+    async (selectLatestIfEmpty = false) => {
       try {
-        const conversations = await fetchConversationHistory();
-        if (!isMounted || !conversations || conversations.length === 0) return;
+        setIsLoadingHistory(true);
+        const list = await fetchConversationHistory();
+        setConversations(list || []);
 
-        const latest = conversations[0];
-        setConversationId(latest.id);
-
-        if (latest.messages && latest.messages.length > 0) {
-          const loaded: ChatMessage[] = latest.messages.map((m) => {
-            // Check if past message contains order confirmation notice
-            let createdOrder: CreatedOrderData | undefined;
-            const orderMatch = m.content.match(/Commande\s*#(\d+)/i);
-            if (m.role === "assistant" && orderMatch) {
-              createdOrder = {
-                orderId: parseInt(orderMatch[1], 10),
-              };
-            }
-
-            return {
-              id: `msg-${m.id}`,
-              sender: m.role,
-              text: m.content,
-              timestamp: new Date(m.createdAt).toLocaleTimeString([], {
-                hour: "2-digit",
-                minute: "2-digit",
-              }),
-              createdOrder,
-            };
-          });
-          setMessages(loaded);
+        if (selectLatestIfEmpty && list && list.length > 0) {
+          const latest = list[0];
+          setConversationId(latest.id);
+          if (latest.messages && latest.messages.length > 0) {
+            setMessages(mapDbMessagesToChat(latest.messages));
+          }
         }
       } catch {
-        // Fallback to initial welcome message if offline or history fetch fails
+        // Fallback to initial state if offline
+      } finally {
+        setIsLoadingHistory(false);
       }
+    },
+    [mapDbMessagesToChat]
+  );
+
+  // ── Initial load on mount ──────────────────────────────────────────────────
+  useEffect(() => {
+    let isMounted = true;
+    if (isMounted) {
+      refreshConversationsList(true);
     }
-
-    loadPastChat();
-
     return () => {
       isMounted = false;
       activeStreamRef.current?.abort();
     };
-  }, []);
+  }, [refreshConversationsList]);
+
+  // ── Switch to an existing conversation ─────────────────────────────────────
+  const handleSelectConversation = (conv: ConversationSummary) => {
+    activeStreamRef.current?.abort();
+    setConversationId(conv.id);
+    setIsSending(false);
+    setAgentStatus(null);
+    setRateLimitNotice(null);
+
+    if (conv.messages && conv.messages.length > 0) {
+      setMessages(mapDbMessagesToChat(conv.messages));
+    } else {
+      setMessages([
+        {
+          id: `conv-start-${conv.id}`,
+          sender: "assistant",
+          text: `Reprise de la conversation « ${conv.title} ». Comment puis-je vous aider ?`,
+          timestamp: "À l'instant",
+        },
+      ]);
+    }
+
+    setIsHistoryModalVisible(false);
+
+    setTimeout(() => {
+      flatListRef.current?.scrollToEnd({ animated: false });
+    }, 100);
+  };
+
+  // ── Start a fresh new conversation ─────────────────────────────────────────
+  const handleStartNewConversation = () => {
+    activeStreamRef.current?.abort();
+    setConversationId(undefined);
+    setIsSending(false);
+    setAgentStatus(null);
+    setRateLimitNotice(null);
+
+    setMessages([
+      {
+        id: `welcome-${Date.now()}`,
+        sender: "assistant",
+        text: `✨ Nouvelle conversation démarrée ! Que recherchez-vous aujourd'hui (produits, suivi de commande, délais COD) ?`,
+        timestamp: "À l'instant",
+      },
+    ]);
+
+    setIsHistoryModalVisible(false);
+  };
 
   // ── Send message with real-time SSE streaming ───────────────────────────────
   const sendMessage = async (textToSend?: string) => {
@@ -204,7 +291,7 @@ export default function ChatScreen() {
             } else if (tool.includes("Stock")) {
               setAgentStatus("📊 Vérification du stock en direct...");
             } else if (tool.includes("createOrder")) {
-              setAgentStatus("📋 Préparation du récapitulatif de commande...");
+              setAgentStatus("📋 Préparation du récapitulatif...");
             } else if (tool.includes("cancelOrder")) {
               setAgentStatus("⚠️ Préparation de l'annulation...");
             } else if (tool.includes("Order")) {
@@ -292,7 +379,7 @@ export default function ChatScreen() {
               );
             }
 
-            // 3. Directly created or executed order result
+            // 3. Executed order result
             if (result?.success && result?.orderId) {
               setMessages((prev) =>
                 prev.map((m) =>
@@ -328,10 +415,7 @@ export default function ChatScreen() {
               setMessages((prev) =>
                 prev.map((m) =>
                   m.id === assistantPlaceholderId
-                    ? {
-                        ...m,
-                        createdOrder: { orderId },
-                      }
+                    ? { ...m, createdOrder: { orderId } }
                     : m
                 )
               );
@@ -351,6 +435,9 @@ export default function ChatScreen() {
             );
             setIsSending(false);
             setAgentStatus(null);
+
+            // Silently update conversation list in background so title/dates are refreshed
+            refreshConversationsList(false);
           },
 
           onError: (err) => {
@@ -410,7 +497,6 @@ export default function ChatScreen() {
           : m
       )
     );
-    // Send affirmative confirmation to trigger backend execution
     sendMessage("Oui");
   };
 
@@ -453,20 +539,43 @@ export default function ChatScreen() {
             <Text style={styles.headerTitle}>ShopMate AI</Text>
             <View style={styles.statusRow}>
               <View style={styles.onlineDot} />
-              <Text style={styles.statusText}>
+              <Text style={styles.statusText} numberOfLines={1}>
                 {agentStatus || "En ligne • Paiement à la livraison (COD)"}
               </Text>
             </View>
           </View>
-          {isSending ? (
+
+          {/* Action buttons in header */}
+          <View style={styles.headerActions}>
+            {isSending ? (
+              <Pressable
+                style={styles.stopButton}
+                onPress={handleStopStreaming}
+                accessibilityLabel="Arrêter la réponse"
+              >
+                <Text style={styles.stopButtonText}>Arrêter</Text>
+              </Pressable>
+            ) : null}
+
             <Pressable
-              style={styles.stopButton}
-              onPress={handleStopStreaming}
-              accessibilityLabel="Arrêter la réponse"
+              style={styles.newChatButton}
+              onPress={handleStartNewConversation}
+              accessibilityLabel="Nouvelle conversation"
             >
-              <Text style={styles.stopButtonText}>Arrêter</Text>
+              <Text style={styles.newChatButtonText}>+ Nouveau</Text>
             </Pressable>
-          ) : null}
+
+            <Pressable
+              style={styles.historyButton}
+              onPress={() => {
+                refreshConversationsList(false);
+                setIsHistoryModalVisible(true);
+              }}
+              accessibilityLabel="Historique des conversations"
+            >
+              <Text style={styles.historyButtonText}>📜</Text>
+            </Pressable>
+          </View>
         </View>
 
         {rateLimitNotice ? (
@@ -533,7 +642,7 @@ export default function ChatScreen() {
                   </Text>
                 )}
 
-                {/* 2. Tappable Product Cards (Search Catalog Results) */}
+                {/* 2. Tappable Product Cards */}
                 {item.products && item.products.length > 0 ? (
                   <View style={styles.productsContainer}>
                     <Text style={styles.productsSectionTitle}>
@@ -668,7 +777,7 @@ export default function ChatScreen() {
                   </View>
                 ) : null}
 
-                {/* 4. Created Order Success Card linking to Order Detail */}
+                {/* 4. Created Order Success Card */}
                 {item.createdOrder ? (
                   <View style={styles.createdOrderCard}>
                     <View style={styles.createdOrderHeader}>
@@ -798,6 +907,113 @@ export default function ChatScreen() {
           </Pressable>
         </View>
       </KeyboardAvoidingView>
+
+      {/* ── Modal: Conversation History ────────────────────────────────────── */}
+      <Modal
+        visible={isHistoryModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setIsHistoryModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            {/* Modal Header */}
+            <View style={styles.modalHeader}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                <Text style={{ fontSize: 18 }}>📜</Text>
+                <Text style={styles.modalTitle}>Mes conversations</Text>
+              </View>
+              <Pressable
+                style={styles.modalCloseButton}
+                onPress={() => setIsHistoryModalVisible(false)}
+              >
+                <Text style={styles.modalCloseButtonText}>✕</Text>
+              </Pressable>
+            </View>
+
+            {/* New Conversation Action */}
+            <Pressable
+              style={({ pressed }) => [
+                styles.modalNewChatButton,
+                pressed && styles.buttonPressed,
+              ]}
+              onPress={handleStartNewConversation}
+            >
+              <Text style={styles.modalNewChatButtonText}>
+                ✨ Démarrer une nouvelle conversation
+              </Text>
+            </Pressable>
+
+            {/* Conversation List */}
+            {isLoadingHistory ? (
+              <View style={styles.modalLoadingBox}>
+                <ActivityIndicator size="small" color={colorTokens.primary} />
+                <Text style={styles.modalLoadingText}>Chargement de l'historique...</Text>
+              </View>
+            ) : conversations.length === 0 ? (
+              <View style={styles.modalEmptyBox}>
+                <Text style={{ fontSize: 32, marginBottom: 8 }}>💬</Text>
+                <Text style={styles.modalEmptyTitle}>Aucune conversation passée</Text>
+                <Text style={styles.modalEmptySubtitle}>
+                  Posez votre première question pour commencer à échanger avec ShopMate AI.
+                </Text>
+              </View>
+            ) : (
+              <FlatList
+                data={conversations}
+                keyExtractor={(item) => String(item.id)}
+                contentContainerStyle={styles.modalListContent}
+                renderItem={({ item }) => {
+                  const isActive = item.id === conversationId;
+                  const lastMsg =
+                    item.messages && item.messages.length > 0
+                      ? item.messages[item.messages.length - 1].content
+                      : "Pas encore de messages";
+
+                  return (
+                    <Pressable
+                      style={({ pressed }) => [
+                        styles.conversationItem,
+                        isActive && styles.conversationItemActive,
+                        pressed && styles.buttonPressed,
+                      ]}
+                      onPress={() => handleSelectConversation(item)}
+                    >
+                      <View style={styles.conversationItemHeader}>
+                        <Text
+                          style={[
+                            styles.conversationItemTitle,
+                            isActive && styles.conversationItemTitleActive,
+                          ]}
+                          numberOfLines={1}
+                        >
+                          {item.title || `Conversation #${item.id}`}
+                        </Text>
+                        <Text style={styles.conversationItemDate}>
+                          {formatConversationDate(item.updatedAt)}
+                        </Text>
+                      </View>
+
+                      <Text
+                        style={styles.conversationItemPreview}
+                        numberOfLines={2}
+                      >
+                        {lastMsg}
+                      </Text>
+
+                      {isActive ? (
+                        <View style={styles.activeBadge}>
+                          <Text style={styles.activeBadgeText}>En cours</Text>
+                        </View>
+                      ) : null}
+                    </Pressable>
+                  );
+                }}
+              />
+            )}
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -850,8 +1066,13 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: colorTokens.muted,
   },
+  headerActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
   stopButton: {
-    paddingHorizontal: 10,
+    paddingHorizontal: 8,
     paddingVertical: 5,
     borderRadius: radiusTokens.md,
     backgroundColor: colorTokens.errorContainer,
@@ -860,6 +1081,32 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "600",
     color: colorTokens.error,
+  },
+  newChatButton: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: radiusTokens.md,
+    backgroundColor: colorTokens.surfaceContainer,
+    borderWidth: 1,
+    borderColor: colorTokens.border,
+  },
+  newChatButtonText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: colorTokens.primary,
+  },
+  historyButton: {
+    width: 32,
+    height: 32,
+    borderRadius: radiusTokens.md,
+    backgroundColor: colorTokens.surfaceContainer,
+    borderWidth: 1,
+    borderColor: colorTokens.border,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  historyButtonText: {
+    fontSize: 14,
   },
   rateLimitBanner: {
     marginTop: 8,
@@ -1353,5 +1600,139 @@ const styles = StyleSheet.create({
     color: colorTokens.surface,
     fontSize: 18,
     fontWeight: "bold",
+  },
+
+  // ── Modal: Conversation History ────────────────────────────────────────────
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.45)",
+    justifyContent: "flex-end",
+  },
+  modalContent: {
+    height: "75%",
+    backgroundColor: colorTokens.surface,
+    borderTopLeftRadius: radiusTokens.xxl,
+    borderTopRightRadius: radiusTokens.xxl,
+    padding: spacingTokens.md,
+    paddingBottom: spacingTokens.xl,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: spacingTokens.md,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: colorTokens.ink,
+  },
+  modalCloseButton: {
+    width: 32,
+    height: 32,
+    borderRadius: radiusTokens.full,
+    backgroundColor: colorTokens.surfaceContainer,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  modalCloseButtonText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: colorTokens.ink,
+  },
+  modalNewChatButton: {
+    backgroundColor: colorTokens.primary,
+    paddingVertical: 12,
+    borderRadius: radiusTokens.lg,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: spacingTokens.md,
+  },
+  modalNewChatButtonText: {
+    color: colorTokens.surface,
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  modalLoadingBox: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  modalLoadingText: {
+    fontSize: 13,
+    color: colorTokens.muted,
+  },
+  modalEmptyBox: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: spacingTokens.lg,
+  },
+  modalEmptyTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: colorTokens.ink,
+    marginBottom: 4,
+  },
+  modalEmptySubtitle: {
+    fontSize: 12,
+    color: colorTokens.muted,
+    textAlign: "center",
+    lineHeight: 18,
+  },
+  modalListContent: {
+    gap: spacingTokens.sm,
+    paddingBottom: spacingTokens.lg,
+  },
+  conversationItem: {
+    backgroundColor: colorTokens.surfaceContainerLowest,
+    borderRadius: radiusTokens.lg,
+    padding: spacingTokens.md,
+    borderWidth: 1,
+    borderColor: colorTokens.border,
+  },
+  conversationItemActive: {
+    borderColor: colorTokens.primary,
+    backgroundColor: colorTokens.surfaceContainerLow,
+    borderWidth: 1.5,
+  },
+  conversationItemHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 4,
+  },
+  conversationItemTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: colorTokens.ink,
+    flex: 1,
+    marginRight: 8,
+  },
+  conversationItemTitleActive: {
+    color: colorTokens.primary,
+  },
+  conversationItemDate: {
+    fontSize: 11,
+    color: colorTokens.muted,
+  },
+  conversationItemPreview: {
+    fontSize: 12,
+    color: colorTokens.muted,
+    lineHeight: 16,
+  },
+  activeBadge: {
+    alignSelf: "flex-start",
+    marginTop: 6,
+    backgroundColor: colorTokens.secondaryContainer,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: radiusTokens.sm,
+  },
+  activeBadgeText: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: colorTokens.onSecondaryContainer,
   },
 });
