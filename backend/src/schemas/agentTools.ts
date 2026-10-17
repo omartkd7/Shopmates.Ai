@@ -60,14 +60,8 @@ export const cancelOrderToolSchema = z.object({
 export const getShipmentStatusToolSchema = z
   .object({
     orderId: z.coerce.number().int().positive().optional(),
-    trackingNumber: z.string().trim().min(1).optional(),
   })
-  .refine(
-    (data) => data.orderId !== undefined || data.trackingNumber !== undefined,
-    {
-      message: "Veuillez fournir soit le numéro de commande (orderId), soit le numéro de suivi (trackingNumber)",
-    }
-  );
+  .describe("orderId est facultatif : si absent, le serveur retrouve la dernière commande du client connecté.");
 
 // Inferred TypeScript input types
 export type SearchProductsArgs = z.infer<typeof searchProductsToolSchema>;

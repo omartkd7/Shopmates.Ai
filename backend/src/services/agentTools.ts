@@ -20,6 +20,7 @@ import {
 import { z } from "zod";
 import { Op } from "sequelize";
 import { Product, Order, OrderItem, Customer, User, forStore } from "../models";
+import { requestShipmentStatus } from "./mcpShipmentClient";
 
 /**
  * Allowlist of the exact 8 tools that ShopMate AI is permitted to invoke.
@@ -246,7 +247,7 @@ export const AGENT_TOOLS: LLMTool[] = [
     function: {
       name: "getShipmentStatus",
       description:
-        "Consulter le statut d'expédition et le suivi transporteur d'un colis auprès du service de livraison.",
+        "Consulter le statut de livraison d'une commande du client connecté. Si orderId est omis, retrouver et suivre sa commande la plus récente.",
       parameters: {
         type: "object",
         properties: {
@@ -611,6 +612,45 @@ export async function listMyOrdersTool(
   };
 }
 
+/** Looks up only this customer's order, then asks the MCP shipment service for tracking. */
+export async function getShipmentStatusTool(
+  args: GetShipmentStatusArgs,
+  context: ToolExecutionContext
+): Promise<Record<string, unknown>> {
+  const customer = await getCustomerForContext(context);
+  if (!customer) {
+    return { status: "unavailable", message: "Aucun profil client trouvé pour ce compte." };
+  }
+
+  const order = (await forStore(Order, context.storeId).findOne({
+    where: {
+      customerId: customer.id,
+      ...(args.orderId !== undefined ? { id: args.orderId } : {}),
+    },
+    order: [["createdAt", "DESC"]],
+    attributes: ["id", "status"],
+  })) as Order | null;
+
+  if (!order) {
+    return {
+      status: "not_found",
+      message: args.orderId !== undefined
+        ? "Cette commande est introuvable ou n'appartient pas à votre compte."
+        : "Aucune commande n'a été trouvée pour votre compte.",
+    };
+  }
+
+  try {
+    return await requestShipmentStatus(order.id, order.status);
+  } catch {
+    return {
+      status: "unavailable",
+      orderId: order.id,
+      message: "Le service de suivi est temporairement indisponible. Réessayez un peu plus tard.",
+    };
+  }
+}
+
 // ─── Tool Dispatcher ──────────────────────────────────────────────────────────
 
 /**
@@ -662,10 +702,7 @@ export async function executeToolCall(
         return await executeConfirmedAction(convId, validation.context);
       }
       case "getShipmentStatus":
-        return {
-          status: "mcp_tracking_pending",
-          message: "Suivi transporteur via MCP en cours d'intégration.",
-        };
+        return await getShipmentStatusTool(validation.args, validation.context);
       default:
         return { error: `Outil non supporté: ${name}` };
     }

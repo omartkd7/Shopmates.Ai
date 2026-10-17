@@ -108,10 +108,15 @@ async function runAgentToolsTest() {
     !invalidCancel.success && invalidCancel.error.includes("orderId")
   );
 
-  // getShipmentStatus without orderId and without trackingNumber
-  const invalidShipment = validateToolCall("getShipmentStatus", {}, mockContext);
+  // getShipmentStatus without orderId means the customer's latest order.
+  const latestShipment = validateToolCall("getShipmentStatus", {}, mockContext);
   assert(
-    "getShipmentStatus without tracking or orderId is rejected",
+    "getShipmentStatus can look up the authenticated customer's latest order",
+    latestShipment.success && latestShipment.args.orderId === undefined
+  );
+  const invalidShipment = validateToolCall("getShipmentStatus", { orderId: -1 }, mockContext);
+  assert(
+    "getShipmentStatus rejects an invalid order ID",
     !invalidShipment.success && invalidShipment.error.includes("Validation échouée")
   );
   console.log();
