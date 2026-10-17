@@ -54,6 +54,12 @@ L'application est **multi-tenant** : chaque donnée est rattachée à un `storeI
 
 ### Dernière mise à jour
 
+- **Parcours d'Achat Intégré dans le Chat & Cartes Interactives (`mobile/app/(tabs)/chat.tsx`) :**
+  - **Cartes produits cliquables :** Les résultats de recherche de l'agent (`searchProducts`) sont rendus sous forme de carrousel de cartes produit interactives avec nom, catégorie, pastille de stock en direct (*"En stock"* / *"Rupture"*) et prix en DH, avec redirection directe vers la fiche produit [`/product/[id]`](file:///c:/Users/User/Desktop/full%20roge%20projcted%20ccfbs/Shopmates.Ai/mobile/app/product/%5Bid%5D.tsx).
+  - **Carte de récapitulatif avec confirmation explicite :** Lorsque l'agent prépare une commande (`createOrder`), il génère une carte de prévisualisation avec le détail des articles, l'adresse et le montant total COD. Deux boutons interactifs permettent de valider (**« ✅ Confirmer la commande »** qui envoie *"Oui"*) ou d'annuler (**« Non, annuler »**), garantissant qu'aucune écriture en base n'a lieu avant le consentement explicite du client.
+  - **Carte de commande créée :** Dès que la commande est enregistrée dans PostgreSQL, une carte de succès verte s'affiche avec le numéro de commande (`Commande #1234`) et un bouton direct **« 📦 Voir ma commande ➔ »** redirigeant vers l'écran de suivi [`/orders`](file:///c:/Users/User/Desktop/full%20roge%20projcted%20ccfbs/Shopmates.Ai/mobile/app/%28tabs%29/orders.tsx).
+  - **Citations documentaires RAG :** Affichage soigné des sources vérifiées (`📄 politique-livraison.md (84%)`) sous les réponses de l'agent pour une traçabilité et une transparence totale.
+  - **Flux d'achat conversationnel complet :** Recherche de produit ➔ consultation de la fiche ➔ récapitulatif ➔ confirmation ➔ commande validée, le tout directement au sein du chat mobile.
 - **Streaming SSE temps réel & Persistance de l'historique (`POST /api/agent/chat` & `GET /api/agent/conversations`) :**
   - **Streaming SSE token par token :** Support complet de `text/event-stream` avec flush immédiat des headers (`res.flushHeaders()`) et neutralisation du buffering proxy (`X-Accel-Buffering: no`).
   - **Protocole d'événements typés :** Émission en temps réel des événements `start` (id conversation), `source` (chunks RAG avec similarités), `tool_call` & `tool_result` (télémétrie des outils), `token` (morceaux de réponse), `confirmation` (état de commande COD), `done` (bilan final) et `error`.
@@ -635,7 +641,7 @@ Le `Dockerfile` est **multi-stage** (build puis runtime léger). Le `docker-comp
 | 5 | Pipeline RAG (ingestion, embeddings 1536 dim, recherche cosinus HNSW) | 🟢 |
 | 6 | Function calling (8 outils + validation Zod + confirmation explicite) | 🟢 |
 | 7 | Client LLM provider-agnostique (OpenAI/Claude/DeepSeek) & streaming SSE (`POST /api/agent/chat`) | 🟢 |
-| 8 | Écran chat mobile React Native / Expo avec client SSE streaming, auto-scroll, annulation et gestion 429 | 🟢 |
+| 8 | Écran chat mobile React Native / Expo : client SSE streaming, cartes produits cliquables, récapitulatif interactif avec boutons Confirmer/Annuler, citation des sources RAG et suivi de commande | 🟢 |
 | 9 | Garde-fous, modération, audit (`AgentLog`) | 🟢 |
 | 10 | Serveur MCP + n8n *(bonus)* | ⚪ |
 | 11 | Docker + déploiement | ⚪ |
