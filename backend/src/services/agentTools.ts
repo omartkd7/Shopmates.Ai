@@ -47,6 +47,10 @@ export function isAllowedTool(name: string): name is AllowedToolName {
  */
 export const MAX_TOOL_CALLS_PER_TURN = 3;
 
+export function canCallAnotherTool(toolCallsUsed: number): boolean {
+  return Number.isSafeInteger(toolCallsUsed) && toolCallsUsed >= 0 && toolCallsUsed < MAX_TOOL_CALLS_PER_TURN;
+}
+
 import {
   initiateCreateOrderRecap,
   initiateCancelOrderRecap,

@@ -5,12 +5,14 @@
   "main": "server.js",
   "scripts": {
     "dev": "tsx watch src/server.ts",
+    "db:migrate": "sequelize-cli db:migrate --config src/config/sequelize-cli.js --migrations-path migrations",
     "seed": "tsx src/seed.ts",
     "test:llm": "tsx src/scripts/test-llm.ts",
     "test:tools": "tsx src/scripts/test-agent-tools.ts",
     "test:read-tools": "tsx src/scripts/test-read-tools.ts",
     "test:confirmation": "tsx src/scripts/test-order-confirmation.ts",
     "test:guardrails": "tsx src/scripts/test-guardrails.ts",
+    "test:cost-limits": "tsx src/scripts/test-agent-cost-limits.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],

@@ -154,8 +154,15 @@ export const swaggerSpec = {
           agentName: { type: "string", example: "ShopMate-Assistant" },
           action: { type: "string", example: "searchProducts" },
           status: { type: "string", enum: ["success", "error"], example: "success" },
+          conversationId: { type: "integer", nullable: true },
+          messageId: { type: "integer", nullable: true },
           input: { type: "string", example: "argan" },
           output: { type: "string", example: "3 produits trouvés" },
+          toolsCalled: { type: "array", items: { type: "object" } },
+          ragSources: { type: "array", items: { type: "object" } },
+          tokenUsage: { type: "object", nullable: true },
+          latencyMs: { type: "integer", nullable: true },
+          refusalCategory: { type: "string", nullable: true },
           createdAt: { type: "string", format: "date-time" },
         },
       },
@@ -795,6 +802,13 @@ export const swaggerSpec = {
         tags: ["Agent"],
         summary: "Journal d'audit des requêtes et actions de l'agent IA (Admin)",
         security: [{ BearerAuth: [] }],
+        parameters: [
+          { name: "page", in: "query", schema: { type: "integer", minimum: 1, default: 1 } },
+          { name: "limit", in: "query", schema: { type: "integer", minimum: 1, maximum: 100, default: 25 } },
+          { name: "conversationId", in: "query", schema: { type: "integer", minimum: 1 }, description: "Filtrer les traces d'une conversation" },
+          { name: "action", in: "query", schema: { type: "string" } },
+          { name: "status", in: "query", schema: { type: "string", enum: ["success", "error"] } },
+        ],
         responses: {
           200: {
             description: "Journal des logs",
@@ -804,6 +818,15 @@ export const swaggerSpec = {
                   type: "object",
                   properties: {
                     logs: { type: "array", items: { $ref: "#/components/schemas/AgentLog" } },
+                    pagination: {
+                      type: "object",
+                      properties: {
+                        total: { type: "integer" },
+                        page: { type: "integer" },
+                        limit: { type: "integer" },
+                        totalPages: { type: "integer" },
+                      },
+                    },
                   },
                 },
               },

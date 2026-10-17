@@ -13,17 +13,20 @@ import {
   buildSystemPrompt,
   getLlmClient,
   LLM_MODEL,
+  MAX_TOKENS_PER_TURN,
   type LLMMessage,
 } from "../services/llm";
 import {
   AGENT_TOOLS,
   executeToolCall,
-  MAX_TOOL_CALLS_PER_TURN,
+  canCallAnotherTool,
+  validateToolCall,
   type ToolExecutionContext,
 } from "../services/agentTools";
 import {
   hasPendingConfirmation,
   executeConfirmedAction,
+  getPendingConfirmation,
   isAffirmativeConfirmation,
 } from "../services/orderConfirmation";
 import {
@@ -34,6 +37,7 @@ import {
   STANDARD_REFUSALS,
 } from "../services/guardrails";
 import { z } from "zod";
+import { sanitizeForLogging } from "../middlewares/sanitizeLogs";
 
 const agentRouter = Router();
 
@@ -42,6 +46,14 @@ agentRouter.use(authenticate, injectTenant);
 const chatMessageSchema = z.object({
   message: z.string().trim().min(1).max(2000),
   conversationId: z.coerce.number().int().positive().optional(),
+});
+
+const agentLogsQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(25),
+  conversationId: z.coerce.number().int().positive().optional(),
+  action: z.string().trim().min(1).max(100).optional(),
+  status: z.enum(["success", "error"]).optional(),
 });
 
 // ─── POST /api/agent/chat ─────────────────────────────────────────────────────
@@ -85,6 +97,48 @@ agentRouter.post(
     };
 
     const isSSE = (req.headers.accept ?? "").includes("text/event-stream");
+    const turnStartedAt = Date.now();
+    const toolsCalled: Array<Record<string, unknown>> = [];
+    let ragSources: Array<{ name: string; score: number }> = [];
+    let tokenUsage: { promptTokens: number; completionTokens: number; totalTokens: number } | null = null;
+    let refusalCategory: string | null = null;
+    let traceMessageId: number | null = null;
+    let conversation: Conversation | null = null;
+
+    const logText = (value: unknown): string => {
+      const sanitized = sanitizeForLogging(value);
+      return typeof sanitized === "string" ? sanitized : JSON.stringify(sanitized);
+    };
+    const recordTurn = async (entry: {
+      action: string;
+      status: "success" | "error";
+      output?: unknown;
+      errorMessage?: unknown;
+    }): Promise<void> => {
+      await AgentLog.create({
+        storeId,
+        agentName: logText(process.env.LLM_MODEL ?? LLM_MODEL),
+        action: entry.action,
+        status: entry.status,
+        conversationId: conversation?.id ?? null,
+        messageId: traceMessageId,
+        input: logText(userText).slice(0, 4000),
+        output: entry.output === undefined ? null : logText(entry.output).slice(0, 4000),
+        errorMessage: entry.errorMessage === undefined ? null : logText(entry.errorMessage).slice(0, 2000),
+        toolsCalled: sanitizeForLogging(toolsCalled) as Array<Record<string, unknown>>,
+        ragSources: sanitizeForLogging(ragSources) as Array<Record<string, unknown>>,
+        tokenUsage,
+        latencyMs: Date.now() - turnStartedAt,
+        refusalCategory,
+      });
+    };
+    const addTokenUsage = (usage: { promptTokens: number; completionTokens: number; totalTokens: number }): void => {
+      tokenUsage = {
+        promptTokens: (tokenUsage?.promptTokens ?? 0) + usage.promptTokens,
+        completionTokens: (tokenUsage?.completionTokens ?? 0) + usage.completionTokens,
+        totalTokens: (tokenUsage?.totalTokens ?? 0) + usage.totalTokens,
+      };
+    };
 
     // ── Client disconnect guard ───────────────────────────────────────────────
     const abortController = new AbortController();
@@ -103,7 +157,6 @@ agentRouter.post(
 
     try {
       // ── 1. Get or create Conversation ────────────────────────────────────────
-      let conversation: Conversation | null = null;
       if (conversationId) {
         conversation = (await forStore(Conversation, storeId).findOne({
           where: { id: conversationId, userId: user.userId },
@@ -136,14 +189,7 @@ agentRouter.post(
         await userMessage.update({
           content: "[Message masqué : tentative de contournement des règles détectée.]",
         });
-        await AgentLog.create({
-          storeId,
-          agentName: process.env.LLM_MODEL ?? LLM_MODEL,
-          action: "prompt_injection_flagged",
-          status: "error",
-          input: userText.slice(0, 500),
-          output: `Pattern detected: ${injectionCheck.detectedPattern}`,
-        });
+        refusalCategory = "prompt_injection";
         const replyMessage = STANDARD_REFUSALS.promptInjection;
         const assistantMsg = await Message.create({
           storeId,
@@ -151,6 +197,8 @@ agentRouter.post(
           role: "assistant",
           content: replyMessage,
         });
+        traceMessageId = assistantMsg.id;
+        await recordTurn({ action: "prompt_injection_flagged", status: "error", output: replyMessage });
         if (isSSE) {
           res.setHeader("Content-Type", "text/event-stream");
           res.setHeader("Cache-Control", "no-cache");
@@ -168,6 +216,7 @@ agentRouter.post(
       // Systematic refusals (discount negotiations, refunds, cross-tenant data, medical/legal)
       const refusalCheck = checkProhibitedIntent(userText);
       if (refusalCheck.shouldRefuse && refusalCheck.refusalMessage) {
+        refusalCategory = refusalCheck.category ?? "prohibited_request";
         const replyMessage = refusalCheck.refusalMessage;
 
         const assistantMsg = await Message.create({
@@ -177,14 +226,8 @@ agentRouter.post(
           content: replyMessage,
         });
 
-        await AgentLog.create({
-          storeId,
-          agentName: process.env.LLM_MODEL ?? LLM_MODEL,
-          action: `refusal_${refusalCheck.category}`,
-          status: "success",
-          input: userText.slice(0, 500),
-          output: replyMessage.slice(0, 500),
-        });
+        traceMessageId = assistantMsg.id;
+        await recordTurn({ action: `refusal_${refusalCheck.category}`, status: "success", output: replyMessage });
 
         if (isSSE) {
           res.setHeader("Content-Type", "text/event-stream");
@@ -217,6 +260,15 @@ agentRouter.post(
 
       // A prohibited or adversarial message must never confirm an earlier write.
       if (isAffirmativeConfirmation(userText) && hasPendingConfirmation(conversation.id)) {
+        const pendingAction = getPendingConfirmation(conversation.id);
+        if (pendingAction) {
+          toolsCalled.push({
+            name: pendingAction.action,
+            args: sanitizeForLogging(pendingAction.args),
+            validationPassed: true,
+            source: "explicit_customer_confirmation",
+          });
+        }
         const executionResult = await executeConfirmedAction(conversation.id, {
           storeId,
           userId: user.userId,
@@ -232,14 +284,8 @@ agentRouter.post(
           role: "assistant",
           content: replyMessage,
         });
-        await AgentLog.create({
-          storeId,
-          agentName: process.env.LLM_MODEL ?? LLM_MODEL,
-          action: "order_confirmation",
-          status: executionResult.success ? "success" : "error",
-          input: userText.slice(0, 500),
-          output: replyMessage.slice(0, 500),
-        });
+        traceMessageId = assistantMsg.id;
+        await recordTurn({ action: "order_confirmation", status: executionResult.success ? "success" : "error", output: replyMessage });
         if (isSSE) {
           res.setHeader("Content-Type", "text/event-stream");
           res.setHeader("Cache-Control", "no-cache");
@@ -259,18 +305,13 @@ agentRouter.post(
       const retrievedChunks = await retrieveContext(activeUserText, storeId);
       const ragChunks = retrievedChunks.filter((chunk) => {
         const suspicious = checkPromptInjection(`${chunk.source}\n${chunk.content}`).isSuspicious;
-        if (suspicious) {
-          void AgentLog.create({
-            storeId,
-            agentName: process.env.LLM_MODEL ?? LLM_MODEL,
-            action: "rag_prompt_injection_flagged",
-            status: "error",
-            input: userText.slice(0, 500),
-            output: `Suspicious RAG chunk omitted (document ${chunk.documentId}, chunk ${chunk.chunkId}).`,
-          }).catch(() => undefined);
-        }
         return !suspicious;
       });
+      ragSources = retrievedChunks.map((chunk) => ({
+        name: chunk.source,
+        score: Number(chunk.score),
+        omitted: !ragChunks.some((safeChunk) => safeChunk.chunkId === chunk.chunkId),
+      }));
 
       // ── 4. Build initial message history ─────────────────────────────────────
       const history = await Message.findAll({
@@ -354,7 +395,7 @@ agentRouter.post(
 
           await streamChat(
             currentMessages,
-            toolCallCount < MAX_TOOL_CALLS_PER_TURN ? AGENT_TOOLS : undefined,
+            canCallAnotherTool(toolCallCount) ? AGENT_TOOLS : undefined,
             {
               onToken: (token) => {
                 // Filter internal tool-call chunk markers — not meant for the client
@@ -363,6 +404,7 @@ agentRouter.post(
                   fullResponse += token;
                 }
               },
+              onUsage: addTokenUsage,
 
               // ── Tool call interception ─────────────────────────────────────────
               onToolCalls: async (toolCalls) => {
@@ -377,7 +419,7 @@ agentRouter.post(
 
                 // Execute each tool (Zod-validated, storeId from JWT — never from model)
                 for (const tc of toolCalls) {
-                  if (toolCallCount >= MAX_TOOL_CALLS_PER_TURN) break;
+                  if (!canCallAnotherTool(toolCallCount)) break;
 
                   const toolName = tc.function.name;
                   let parsedArgs: any = {};
@@ -386,7 +428,14 @@ agentRouter.post(
                   // Emit tool_call event BEFORE execution so client can show "thinking…"
                   safeSend({ type: "tool_call", tool: toolName, args: parsedArgs });
 
+                  const validation = validateToolCall(toolName, tc.function.arguments, toolContext);
                   const result = await executeToolCall(toolName, tc.function.arguments, toolContext);
+                  toolsCalled.push({
+                    name: toolName,
+                    args: validation.success ? sanitizeForLogging(validation.args) : null,
+                    validationPassed: validation.success,
+                    ...(validation.success ? {} : { validationError: validation.error }),
+                  });
                   allToolsUsed.push(toolName);
                   toolCallCount++;
 
@@ -404,7 +453,7 @@ agentRouter.post(
 
               // ── Turn done ──────────────────────────────────────────────────────
               onDone: async (text) => {
-                if (toolCallsDetectedThisTurn && toolCallCount < MAX_TOOL_CALLS_PER_TURN) {
+                if (toolCallsDetectedThisTurn && canCallAnotherTool(toolCallCount)) {
                   // Tools were called this turn → run another LLM turn with results
                   await runStreamTurn();
                   return;
@@ -416,21 +465,15 @@ agentRouter.post(
                 // Output moderation pass (detect prompt leaks, unauthorized discounts)
                 const moderation = moderateAgentOutput(fullResponse);
                 if (!moderation.passed) {
-                  await AgentLog.create({
-                    storeId,
-                    agentName: process.env.LLM_MODEL ?? LLM_MODEL,
-                    action: "output_moderation_flagged",
-                    status: "error",
-                    input: userText.slice(0, 500),
-                    output: `Flagged reason: ${moderation.flaggedReason}`,
-                  });
                   fullResponse = moderation.sanitizedOutput;
+                  refusalCategory = "output_moderation";
                 }
 
                 // Enforce the RAG abstention in code as well as in the prompt.
                 // Live DB tools remain valid sources for stock, price, and order actions.
                 if (ragChunks.length === 0 && allToolsUsed.length === 0) {
                   fullResponse = "Je n'ai pas cette information.";
+                  refusalCategory = "no_rag_context";
                 }
 
                 if (!clientConnected) return; // client disconnected mid-stream
@@ -443,15 +486,9 @@ agentRouter.post(
                   role: "assistant",
                   content: fullResponse,
                 });
+                traceMessageId = assistantMsg.id;
 
-                await AgentLog.create({
-                  storeId,
-                  agentName: process.env.LLM_MODEL ?? LLM_MODEL,
-                  action: "chat",
-                  status: "success",
-                  input: userText.slice(0, 500),
-                  output: fullResponse.slice(0, 500),
-                });
+                await recordTurn({ action: "chat_turn", status: "success", output: fullResponse });
 
                 safeSend({
                   type: "done",
@@ -465,14 +502,7 @@ agentRouter.post(
               },
 
               onError: async (err) => {
-                await AgentLog.create({
-                  storeId,
-                  agentName: process.env.LLM_MODEL ?? LLM_MODEL,
-                  action: "chat",
-                  status: "error",
-                  input: userText.slice(0, 500),
-                  errorMessage: err.message,
-                });
+                await recordTurn({ action: "chat_turn", status: "error", errorMessage: err.message });
                 safeSend({ type: "error", message: "Une erreur est survenue. Réessayez." });
                 if (!res.writableEnded) res.end();
               },
@@ -491,19 +521,27 @@ agentRouter.post(
       let toolCallCount = 0;
       let currentMessages: LLMMessage[] = [...initialMessages];
 
-      while (toolCallCount < MAX_TOOL_CALLS_PER_TURN) {
+      while (canCallAnotherTool(toolCallCount)) {
         const client = getLlmClient();
         const model = process.env.LLM_MODEL ?? LLM_MODEL;
 
         const response = await client.chat.completions.create({
           model,
           messages: currentMessages as any,
-          tools: toolCallCount < MAX_TOOL_CALLS_PER_TURN ? (AGENT_TOOLS as any) : undefined,
+          tools: canCallAnotherTool(toolCallCount) ? (AGENT_TOOLS as any) : undefined,
           tool_choice: "auto",
           stream: false,
-          max_tokens: 1024,
+          max_tokens: MAX_TOKENS_PER_TURN,
           temperature: 0.3,
         });
+
+        if (response.usage) {
+          addTokenUsage({
+            promptTokens: response.usage.prompt_tokens,
+            completionTokens: response.usage.completion_tokens,
+            totalTokens: response.usage.total_tokens,
+          });
+        }
 
         const choice = response.choices[0];
         if (!choice) break;
@@ -523,9 +561,16 @@ agentRouter.post(
 
         // Execute each tool call (Zod + allowlist, storeId from JWT)
         for (const tc of choice.message.tool_calls) {
-          if (toolCallCount >= MAX_TOOL_CALLS_PER_TURN) break;
+          if (!canCallAnotherTool(toolCallCount)) break;
           if (tc.type !== "function") continue;
+          const validation = validateToolCall(tc.function.name, tc.function.arguments, toolContext);
           const result = await executeToolCall(tc.function.name, tc.function.arguments, toolContext);
+          toolsCalled.push({
+            name: tc.function.name,
+            args: validation.success ? sanitizeForLogging(validation.args) : null,
+            validationPassed: validation.success,
+            ...(validation.success ? {} : { validationError: validation.error }),
+          });
           allToolsUsed.push(tc.function.name);
           toolCallCount++;
           currentMessages.push({
@@ -546,19 +591,13 @@ agentRouter.post(
       // Output moderation pass (detect prompt leaks, unauthorized discounts)
       const moderation = moderateAgentOutput(finalResponse);
       if (!moderation.passed) {
-        await AgentLog.create({
-          storeId,
-          agentName: process.env.LLM_MODEL ?? LLM_MODEL,
-          action: "output_moderation_flagged",
-          status: "error",
-          input: userText.slice(0, 500),
-          output: `Flagged reason: ${moderation.flaggedReason}`,
-        });
         finalResponse = moderation.sanitizedOutput;
+        refusalCategory = "output_moderation";
       }
 
       if (ragChunks.length === 0 && allToolsUsed.length === 0) {
         finalResponse = "Je n'ai pas cette information.";
+        refusalCategory = "no_rag_context";
       }
 
       const assistantMsg = await Message.create({
@@ -567,15 +606,9 @@ agentRouter.post(
         role: "assistant",
         content: finalResponse,
       });
+      traceMessageId = assistantMsg.id;
 
-      await AgentLog.create({
-        storeId,
-        agentName: process.env.LLM_MODEL ?? LLM_MODEL,
-        action: "chat",
-        status: "success",
-        input: userText.slice(0, 500),
-        output: finalResponse.slice(0, 500),
-      });
+      await recordTurn({ action: "chat_turn", status: "success", output: finalResponse });
 
       return res.json({
         conversationId: conversation.id,
@@ -588,14 +621,7 @@ agentRouter.post(
 
     } catch (err) {
       try {
-        await AgentLog.create({
-          storeId,
-          agentName: process.env.LLM_MODEL ?? LLM_MODEL,
-          action: "chat",
-          status: "error",
-          input: userText.slice(0, 500),
-          errorMessage: err instanceof Error ? err.message : String(err),
-        });
+        await recordTurn({ action: "chat_turn", status: "error", errorMessage: err instanceof Error ? err.message : String(err) });
       } catch { /* ignore secondary log failure */ }
 
       if (isSSE && !res.writableEnded) {
@@ -672,20 +698,37 @@ agentRouter.get(
 
 // ─── GET /api/agent/logs ──────────────────────────────────────────────────────
 /**
- * Audit logs for store AI interactions (ADMIN only).
- * Returns last 50 entries ordered by most recent.
+ * Paginated, store-scoped audit traces for AI interactions (ADMIN only).
  */
 agentRouter.get(
   "/logs",
   requireRole("ADMIN"),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
+      const parsed = agentLogsQuerySchema.safeParse(req.query);
+      if (!parsed.success) {
+        return res.status(400).json({
+          error: "Invalid log filters",
+          details: parsed.error.flatten().fieldErrors,
+        });
+      }
       const storeId = req.storeId as number;
-      const logs = await forStore(AgentLog, storeId).findAll({
+      const { page, limit, conversationId, action, status } = parsed.data;
+      const where: Record<string, unknown> = {};
+      if (conversationId !== undefined) where.conversationId = conversationId;
+      if (action) where.action = action;
+      if (status) where.status = status;
+
+      const { rows: logs, count: total } = await forStore(AgentLog, storeId).findAndCountAll({
+        where,
         order: [["createdAt", "DESC"]],
-        limit: 50,
+        limit,
+        offset: (page - 1) * limit,
       });
-      return res.json({ logs });
+      return res.json({
+        logs,
+        pagination: { total, page, limit, totalPages: Math.ceil(total / limit) },
+      });
     } catch (err) {
       next(err);
     }

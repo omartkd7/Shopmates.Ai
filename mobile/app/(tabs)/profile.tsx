@@ -17,6 +17,7 @@ import {
 } from "@/src/theme/tokens";
 import { Card } from "@/src/components/Card";
 import { Button } from "@/src/components/Button";
+import { router, type Href } from "expo-router";
 
 export default function ProfileScreen() {
   const user = useAuthStore((state) => state.user);
@@ -78,6 +79,23 @@ export default function ProfileScreen() {
 
         {/* Settings Group: Compte */}
         <View style={styles.menuSection}>
+          {user?.role === "ADMIN" ? (
+            <>
+              <MenuItem
+                icon="🧰"
+                title="Gestion du catalogue"
+                subtitle="Produits, catégories, prix et stock"
+                onPress={() => router.push("/(tabs)/admin-catalogue" as Href)}
+              />
+              <MenuItem
+                icon="📚"
+                title="Documents de connaissance IA"
+                subtitle="Ajouter et gérer les sources de réponses de l’agent"
+                onPress={() => router.push("/(tabs)/admin-documents" as Href)}
+              />
+            </>
+          ) : null}
+
           <Text style={styles.sectionHeader}>PARAMÈTRES DU COMPTE</Text>
 
           <MenuItem

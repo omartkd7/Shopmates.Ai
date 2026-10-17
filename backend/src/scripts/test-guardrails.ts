@@ -6,6 +6,7 @@ import {
   STANDARD_REFUSALS,
 } from "../services/guardrails";
 import { buildSystemPrompt } from "../services/llm";
+import { sanitizeForLogging } from "../middlewares/sanitizeLogs";
 
 let passed = 0;
 let failed = 0;
@@ -46,6 +47,16 @@ const badOutput = moderateAgentOutput("D'accord, je vous fais une remise de 50 D
 assert("unauthorized discount output is replaced", !badOutput.passed && badOutput.sanitizedOutput === STANDARD_REFUSALS.discount);
 const leakedOutput = moderateAgentOutput("Votre API_KEY=sk-example-secret");
 assert("secret-like output is replaced", !leakedOutput.passed && leakedOutput.sanitizedOutput.length > 0);
+const safeLog = sanitizeForLogging({
+  question: `Bearer abc.def.ghi and my password is hunter2 ${"a".repeat(80)}`,
+  refresh_token: "refresh-value",
+  nested: { apiKey: "private-value" },
+}) as Record<string, unknown>;
+assert("log sanitizer masks credentials in question text", String(safeLog.question).includes("Bearer [REDACTED]") &&
+  String(safeLog.question).includes("password is [REDACTED]") &&
+  String(safeLog.question).includes("[REDACTED_OPAQUE_TOKEN]"));
+assert("log sanitizer masks secret fields recursively", safeLog.refresh_token === "[REDACTED]" &&
+  (safeLog.nested as Record<string, unknown>).apiKey === "[REDACTED]");
 
 const prompt = buildSystemPrompt();
 assert("system prompt requires RAG-only knowledge answers", prompt.includes("UNIQUEMENT") && prompt.includes("Je n'ai pas cette information."));

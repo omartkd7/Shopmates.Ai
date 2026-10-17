@@ -41,7 +41,7 @@ export const LLM_MODEL =
   process.env.LLM_MODEL ?? "gpt-4o-mini";
 
 /** Maximum tokens in the LLM response to control costs and latency. */
-const MAX_TOKENS = 1024;
+export const MAX_TOKENS_PER_TURN = 1024;
 
 // ─── System prompt ────────────────────────────────────────────────────────────
 
@@ -111,6 +111,8 @@ export interface StreamCallbacks {
   onDone: (fullText: string) => void | Promise<void>;
   /** Called if the stream errors */
   onError: (err: Error) => void | Promise<void>;
+  /** Provider-reported token counts; may be omitted by compatible providers. */
+  onUsage?: (usage: { promptTokens: number; completionTokens: number; totalTokens: number }) => void;
   /**
    * Called with the fully assembled tool calls once streaming is done.
    * Awaited before onDone fires so the agent loop can execute tools
@@ -139,23 +141,40 @@ export async function streamChat(
     const client = getLlmClient();
     const model = process.env.LLM_MODEL ?? LLM_MODEL;
 
-    const stream = await client.chat.completions.create(
+    const createStream = (includeUsage: boolean) => client.chat.completions.create(
       {
         model,
         messages,
         tools: tools && tools.length > 0 ? tools : undefined,
         tool_choice: tools && tools.length > 0 ? "auto" : undefined,
         stream: true,
-        max_tokens: MAX_TOKENS,
+        ...(includeUsage ? { stream_options: { include_usage: true } } : {}),
+        max_tokens: MAX_TOKENS_PER_TURN,
         temperature: 0.3, // low temp = factual, consistent shop assistant
       },
       { signal }
     );
+    let stream;
+    try {
+      stream = await createStream(true);
+    } catch (err: any) {
+      const message = String(err?.message ?? "").toLowerCase();
+      if (!message.includes("stream_options") && !message.includes("include_usage")) throw err;
+      // Keep compatible providers working if they reject optional usage metadata.
+      stream = await createStream(false);
+    }
 
     let fullText = "";
     const accumulatedToolCalls: any[] = [];
 
     for await (const chunk of stream as AsyncIterable<ChatCompletionChunk>) {
+      if (chunk.usage) {
+        callbacks.onUsage?.({
+          promptTokens: chunk.usage.prompt_tokens,
+          completionTokens: chunk.usage.completion_tokens,
+          totalTokens: chunk.usage.total_tokens,
+        });
+      }
       const delta = chunk.choices[0]?.delta;
       if (!delta) continue;
 
@@ -226,7 +245,7 @@ export async function chat(messages: LLMMessage[], tools?: LLMTool[]): Promise<s
     tools: tools && tools.length > 0 ? tools : undefined,
     tool_choice: tools && tools.length > 0 ? "auto" : undefined,
     stream: false,
-    max_tokens: MAX_TOKENS,
+    max_tokens: MAX_TOKENS_PER_TURN,
     temperature: 0.3,
   });
 

@@ -44,7 +44,32 @@ documentsRouter.get(
         order: [["createdAt", "DESC"]],
         attributes: ["id", "name", "mimeType", "status", "createdAt", "updatedAt"],
       });
-      return res.json({ documents });
+      const chunkCounts = documents.length
+        ? ((await Chunk.findAll({
+            where: {
+              storeId,
+              documentId: documents.map((document) => (document as Document_Model).id),
+            },
+            attributes: [
+              "documentId",
+              [sequelize.fn("COUNT", sequelize.col("id")), "chunksCreated"],
+            ],
+            group: ["documentId"],
+            raw: true,
+          })) as unknown as Array<{ documentId: number; chunksCreated: string }>)
+        : [];
+      const chunksByDocument = new Map(
+        chunkCounts.map(({ documentId, chunksCreated }) => [
+          documentId,
+          Number(chunksCreated),
+        ])
+      );
+      return res.json({
+        documents: documents.map((document) => ({
+          ...document.toJSON(),
+          chunksCreated: chunksByDocument.get((document as Document_Model).id) ?? 0,
+        })),
+      });
     } catch (err) {
       next(err);
     }
