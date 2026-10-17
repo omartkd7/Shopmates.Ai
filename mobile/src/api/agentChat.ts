@@ -36,7 +36,11 @@ export interface StreamChatCallbacks {
   onToolResult?: (tool: string, result: any) => void;
   onToken?: (token: string) => void;
   onConfirmation?: (confirmed: boolean, orderId?: number) => void;
-  onDone?: (payload: { conversationId: number; messageId?: number }) => void;
+  onDone?: (payload: {
+    conversationId: number;
+    messageId?: number;
+    orderId?: number;
+  }) => void;
   onError?: (error: {
     status?: number;
     message: string;
@@ -116,6 +120,7 @@ export async function streamAgentChat(
                 callbacks.onDone?.({
                   conversationId: event.conversationId ?? params.conversationId ?? 0,
                   messageId: event.messageId,
+                  orderId: event.orderId,
                 });
                 break;
               case "error":
