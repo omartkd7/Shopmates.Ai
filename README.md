@@ -74,6 +74,11 @@ L'application est **multi-tenant** : chaque donnée est rattachée à un `storeI
   - **Citations de sources RAG :** Badges cliquables affichant le nom du document source et son score de confiance.
   - **Gestion des erreurs & réessai :** Prise en charge des déconnexions et du rate limit HTTP 429 avec bandeau d'alerte et bouton **"🔄 Réessayer"**.
   - **Arrêt à la demande :** Bouton **"Arrêter"** dans le header et annulation automatique du flux au démontage du composant (`useEffect` cleanup).
+- **Journal d'audit IA Admin (`mobile/app/(tabs)/admin-agent-logs.tsx`, `GET /api/agent/logs`) :**
+  - **Accès réservé au gérant :** L'entrée est visible uniquement pour le rôle `ADMIN`; l'API vérifie aussi ce rôle et filtre chaque requête par le `storeId` issu du JWT.
+  - **Recherche paginée et filtres :** Filtrer par client (`customerId`, identifiant du compte client), période (`fromDate` / `toDate`, format `YYYY-MM-DD`) et résultat (`refused` ou `blocked`).
+  - **Détail d'un tour :** `GET /api/agent/logs/:id` retourne la question, la réponse, les outils appelés et leurs arguments validés, les sources RAG, les tokens d'entrée/sortie/total, la latence, le statut et la catégorie de refus ou blocage.
+  - **Protection des données :** Les traces affichées sont celles de la boutique authentifiée; les secrets, mots de passe et jetons sont masqués avant leur enregistrement.
 - **Function Calling — 8 outils agent + Validation Zod + Confirmation explicite (`src/services/agentTools.ts`, `src/services/orderConfirmation.ts`) :**
   - **Allowlist stricte :** Seuls les 8 outils autorisés (`searchProducts`, `getProductDetails`, `checkStock`, `createOrder`, `getOrderStatus`, `listMyOrders`, `cancelOrder`, `getShipmentStatus`) sont acceptés ; tout appel d'outil inconnu est rejeté avec un message d'erreur sûr.
   - **Validation Zod systématique :** Chaque appel d'outil est validé contre un schéma Zod avant exécution ; les arguments malformés ou manquants déclenchent un refus explicite.
@@ -572,7 +577,8 @@ Le thème mobile et les composants partagés respectent fidèlement la charte gr
 | `POST` | `/api/agent/chat` | **Parler à l'assistant conversationnel (mode streaming SSE ou JSON)** | 🔒 Client |
 | `GET` | `/api/agent/conversations` | Historique des conversations du client connecté | 🔒 Client |
 | `GET` | `/api/agent/conversations/:id` | Récupérer une conversation spécifique avec ses messages ordonnés | 🔒 Client |
-| `GET` | `/api/agent/logs` | Journal d'audit des requêtes, outils appelés et sources documentaires | 👑 Admin |
+| `GET` | `/api/agent/logs` | Journal paginé; filtres optionnels `customerId`, `fromDate`, `toDate`, `disposition` (`refused` / `blocked`), `conversationId`, `action`, `status` | 👑 Admin |
+| `GET` | `/api/agent/logs/:id` | Trace complète d'un tour avec client, question, réponse, arguments d'outils, sources RAG, tokens, latence et motif de refus/blocage | 👑 Admin |
 
 ---
 

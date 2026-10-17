@@ -806,6 +806,10 @@ export const swaggerSpec = {
           { name: "page", in: "query", schema: { type: "integer", minimum: 1, default: 1 } },
           { name: "limit", in: "query", schema: { type: "integer", minimum: 1, maximum: 100, default: 25 } },
           { name: "conversationId", in: "query", schema: { type: "integer", minimum: 1 }, description: "Filtrer les traces d'une conversation" },
+          { name: "customerId", in: "query", schema: { type: "integer", minimum: 1 }, description: "Filtrer par ID du client" },
+          { name: "fromDate", in: "query", schema: { type: "string", format: "date" }, description: "Inclure à partir de cette date" },
+          { name: "toDate", in: "query", schema: { type: "string", format: "date" }, description: "Inclure jusqu'à cette date" },
+          { name: "disposition", in: "query", schema: { type: "string", enum: ["refused", "blocked"] }, description: "Filtrer les refus ou les blocages" },
           { name: "action", in: "query", schema: { type: "string" } },
           { name: "status", in: "query", schema: { type: "string", enum: ["success", "error"] } },
         ],
@@ -833,6 +837,21 @@ export const swaggerSpec = {
             },
           },
           403: { description: "Admin uniquement" },
+        },
+      },
+    },
+    "/api/agent/logs/{id}": {
+      get: {
+        tags: ["Agent"],
+        summary: "Détail d'une trace de l'agent IA (Admin)",
+        security: [{ BearerAuth: [] }],
+        parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer", minimum: 1 } }],
+        responses: {
+          200: {
+            description: "Trace complète du tour et client associé",
+            content: { "application/json": { schema: { type: "object", properties: { log: { $ref: "#/components/schemas/AgentLog" }, customer: { type: "object", nullable: true } } } } },
+          },
+          404: { description: "Trace introuvable pour cette boutique" },
         },
       },
     },

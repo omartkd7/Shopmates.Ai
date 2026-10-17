@@ -67,6 +67,7 @@ export default function TabLayout() {
       />
       <Tabs.Screen name="admin-catalogue" options={{ href: null }} />
       <Tabs.Screen name="admin-documents" options={{ href: null }} />
+      <Tabs.Screen name="admin-agent-logs" options={{ href: null }} />
     </Tabs>
   );
 }

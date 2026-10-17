@@ -37,7 +37,9 @@ import {
   STANDARD_REFUSALS,
 } from "../services/guardrails";
 import { z } from "zod";
+import { Op } from "sequelize";
 import { sanitizeForLogging } from "../middlewares/sanitizeLogs";
+import AgentLogRecord from "../models/AgentLog";
 
 const agentRouter = Router();
 
@@ -48,10 +50,19 @@ const chatMessageSchema = z.object({
   conversationId: z.coerce.number().int().positive().optional(),
 });
 
+const logDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine((value) => {
+  const parsed = new Date(`${value}T00:00:00.000Z`);
+  return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
+}, "Date must be a valid calendar date");
+
 const agentLogsQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(25),
   conversationId: z.coerce.number().int().positive().optional(),
+  customerId: z.coerce.number().int().positive().optional(),
+  fromDate: logDateSchema.optional(),
+  toDate: logDateSchema.optional(),
+  disposition: z.enum(["refused", "blocked"]).optional(),
   action: z.string().trim().min(1).max(100).optional(),
   status: z.enum(["success", "error"]).optional(),
 });
@@ -713,22 +724,101 @@ agentRouter.get(
         });
       }
       const storeId = req.storeId as number;
-      const { page, limit, conversationId, action, status } = parsed.data;
-      const where: Record<string, unknown> = {};
+      const { page, limit, conversationId, customerId, fromDate, toDate, disposition, action, status } = parsed.data;
+      const where: Record<PropertyKey, unknown> = {};
       if (conversationId !== undefined) where.conversationId = conversationId;
       if (action) where.action = action;
       if (status) where.status = status;
+      if (customerId !== undefined) {
+        const customerConversations = (await forStore(Conversation, storeId).findAll({
+          where: { userId: customerId },
+          attributes: ["id"],
+          raw: true,
+        })) as unknown as Array<{ id: number }>;
+        where.conversationId = { [Op.in]: customerConversations.map(({ id }) => id) };
+      }
+      if (fromDate || toDate) {
+        const createdAt: Record<PropertyKey, Date> = {};
+        if (fromDate) createdAt[Op.gte] = new Date(`${fromDate}T00:00:00.000Z`);
+        if (toDate) {
+          const exclusiveEnd = new Date(`${toDate}T00:00:00.000Z`);
+          exclusiveEnd.setUTCDate(exclusiveEnd.getUTCDate() + 1);
+          createdAt[Op.lt] = exclusiveEnd;
+        }
+        where.createdAt = createdAt;
+      }
+      if (disposition === "blocked") {
+        where.refusalCategory = { [Op.in]: ["prompt_injection", "output_moderation"] };
+      } else if (disposition === "refused") {
+        where.refusalCategory = {
+          [Op.ne]: null,
+          [Op.notIn]: ["prompt_injection", "output_moderation"],
+        };
+      }
 
-      const { rows: logs, count: total } = await forStore(AgentLog, storeId).findAndCountAll({
+      const { rows: rawLogs, count: total } = await forStore(AgentLog, storeId).findAndCountAll({
         where,
         order: [["createdAt", "DESC"]],
         limit,
         offset: (page - 1) * limit,
       });
+      const logs = rawLogs as AgentLogRecord[];
+      const conversationIds = Array.from(
+        new Set(logs.map((log) => log.conversationId).filter((id): id is number => id !== null))
+      );
+      const conversations = conversationIds.length
+        ? await forStore(Conversation, storeId).findAll({
+            where: { id: { [Op.in]: conversationIds } },
+            attributes: ["id", "userId"],
+            include: [{ association: "user", attributes: ["id", "name", "email"], where: { storeId }, required: true }],
+          })
+        : [];
+      const customersByConversation = new Map(
+        conversations.map((row) => {
+          const conversation = row as Conversation;
+          const relatedUser = (row as Conversation & { user?: { id: number; name: string; email: string } }).user;
+          return [conversation.id, relatedUser ? { id: relatedUser.id, name: relatedUser.name, email: relatedUser.email } : null] as const;
+        })
+      );
       return res.json({
-        logs,
+        logs: logs.map((log) => ({
+          ...log.toJSON(),
+          customer: log.conversationId ? customersByConversation.get(log.conversationId) ?? null : null,
+        })),
         pagination: { total, page, limit, totalPages: Math.ceil(total / limit) },
       });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+// ─── GET /api/agent/logs/:id ──────────────────────────────────────────────────
+/** Return the full audit trace for one turn, restricted to the current store. */
+agentRouter.get(
+  "/logs/:id",
+  requireRole("ADMIN"),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const storeId = req.storeId as number;
+      const logId = Number(req.params.id);
+      if (!Number.isSafeInteger(logId) || logId < 1) {
+        return res.status(400).json({ error: "Invalid log ID" });
+      }
+      const log = (await forStore(AgentLog, storeId).findOne({ where: { id: logId } })) as AgentLogRecord | null;
+      if (!log) return res.status(404).json({ error: "Agent log not found" });
+
+      let customer = null;
+      if (log.conversationId) {
+        const conversation = await forStore(Conversation, storeId).findOne({
+          where: { id: log.conversationId },
+          attributes: ["id", "userId"],
+          include: [{ association: "user", attributes: ["id", "name", "email"], where: { storeId }, required: true }],
+        });
+        const relatedUser = (conversation as (Conversation & { user?: { id: number; name: string; email: string } }) | null)?.user;
+        if (relatedUser) customer = { id: relatedUser.id, name: relatedUser.name, email: relatedUser.email };
+      }
+      return res.json({ log, customer });
     } catch (err) {
       next(err);
     }

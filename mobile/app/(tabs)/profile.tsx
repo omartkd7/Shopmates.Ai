@@ -93,6 +93,12 @@ export default function ProfileScreen() {
                 subtitle="Ajouter et gérer les sources de réponses de l’agent"
                 onPress={() => router.push("/(tabs)/admin-documents" as Href)}
               />
+              <MenuItem
+                icon="🧾"
+                title="Journal de l’assistant IA"
+                subtitle="Auditer les questions, outils et sources utilisés"
+                onPress={() => router.push("/(tabs)/admin-agent-logs" as Href)}
+              />
             </>
           ) : null}
 
