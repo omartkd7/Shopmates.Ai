@@ -130,21 +130,25 @@ export interface StreamCallbacks {
 export async function streamChat(
   messages: LLMMessage[],
   tools: LLMTool[] | undefined,
-  callbacks: StreamCallbacks
+  callbacks: StreamCallbacks,
+  signal?: AbortSignal
 ): Promise<void> {
   try {
     const client = getLlmClient();
     const model = process.env.LLM_MODEL ?? LLM_MODEL;
 
-    const stream = await client.chat.completions.create({
-      model,
-      messages,
-      tools: tools && tools.length > 0 ? tools : undefined,
-      tool_choice: tools && tools.length > 0 ? "auto" : undefined,
-      stream: true,
-      max_tokens: MAX_TOKENS,
-      temperature: 0.3, // low temp = factual, consistent shop assistant
-    });
+    const stream = await client.chat.completions.create(
+      {
+        model,
+        messages,
+        tools: tools && tools.length > 0 ? tools : undefined,
+        tool_choice: tools && tools.length > 0 ? "auto" : undefined,
+        stream: true,
+        max_tokens: MAX_TOKENS,
+        temperature: 0.3, // low temp = factual, consistent shop assistant
+      },
+      { signal }
+    );
 
     let fullText = "";
     const accumulatedToolCalls: any[] = [];
@@ -196,6 +200,10 @@ export async function streamChat(
 
     await callbacks.onDone(fullText);
   } catch (err: any) {
+    if (signal?.aborted || err?.name === "AbortError") {
+      // Stream aborted because client disconnected — quiet exit
+      return;
+    }
     await callbacks.onError(err instanceof Error ? err : new Error(String(err)));
   }
 }

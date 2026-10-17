@@ -36,7 +36,7 @@ appserver.use("/api/orders", ordersRouter);
 appserver.use("/api/documents", documentsRouter);
 appserver.use("/api/agent", agentRouter);
 
-appserver.get('/health' , (req: Request, res: Response) => {
+appserver.get('/health', (req: Request, res: Response) => {
     res.status(200).json({ message: ' oki Server is healthy' });
 });
 

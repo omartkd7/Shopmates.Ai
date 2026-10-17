@@ -31,3 +31,23 @@ export function createRateLimiter(options: {
     },
   });
 }
+
+/**
+ * AI Agent Rate Limiter: max 20 messages per minute per user (or IP if unauthenticated).
+ * Enforces the ShopMate security rule: 20 agent msg/min/user.
+ */
+export const agentRateLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  limit: 20,
+  statusCode: 429,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => {
+    return (req as any).user?.userId
+      ? `user_${(req as any).user.userId}`
+      : req.ip || "unknown";
+  },
+  message: {
+    error: "Trop de requêtes vers l'assistant IA (max 20 messages / minute).",
+  },
+});

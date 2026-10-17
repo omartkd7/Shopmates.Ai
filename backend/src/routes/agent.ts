@@ -1,6 +1,12 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { AgentLog, Conversation, Message, forStore } from "../models";
-import { authenticate, injectTenant, requireRole, validate } from "../middlewares";
+import {
+  authenticate,
+  injectTenant,
+  requireRole,
+  validate,
+  agentRateLimiter,
+} from "../middlewares";
 import { retrieveContext } from "../services/rag";
 import {
   streamChat,
@@ -61,6 +67,7 @@ const chatMessageSchema = z.object({
  */
 agentRouter.post(
   "/chat",
+  agentRateLimiter,
   validate(chatMessageSchema, "body"),
   async (req: Request, res: Response, next: NextFunction) => {
     const storeId   = req.storeId as number;
@@ -73,8 +80,12 @@ agentRouter.post(
     const isSSE = (req.headers.accept ?? "").includes("text/event-stream");
 
     // ── Client disconnect guard ───────────────────────────────────────────────
+    const abortController = new AbortController();
     let clientConnected = true;
-    req.on("close", () => { clientConnected = false; });
+    req.on("close", () => {
+      clientConnected = false;
+      abortController.abort();
+    });
 
     /** Write a JSON SSE event only when client is still connected. */
     const safeSend = (data: object): void => {
@@ -144,6 +155,7 @@ agentRouter.post(
           res.setHeader("Cache-Control", "no-cache");
           res.setHeader("Connection", "keep-alive");
           res.setHeader("X-Accel-Buffering", "no");
+          res.flushHeaders();
           safeSend({ type: "start", conversationId: conversation.id });
           safeSend({ type: "confirmation", confirmed: executionResult.success, orderId: executionResult.orderId });
           safeSend({ type: "token", token: replyMessage });
@@ -214,6 +226,7 @@ agentRouter.post(
         res.setHeader("Cache-Control", "no-cache");
         res.setHeader("Connection", "keep-alive");
         res.setHeader("X-Accel-Buffering", "no");
+        res.flushHeaders();
 
         safeSend({ type: "start", conversationId: conversation.id });
 
@@ -346,7 +359,8 @@ agentRouter.post(
                 safeSend({ type: "error", message: "Une erreur est survenue. Réessayez." });
                 if (!res.writableEnded) res.end();
               },
-            }
+            },
+            abortController.signal
           );
         };
 
@@ -393,6 +407,7 @@ agentRouter.post(
         // Execute each tool call (Zod + allowlist, storeId from JWT)
         for (const tc of choice.message.tool_calls) {
           if (toolCallCount >= MAX_TOOL_CALLS_PER_TURN) break;
+          if (tc.type !== "function") continue;
           const result = await executeToolCall(tc.function.name, tc.function.arguments, toolContext);
           allToolsUsed.push(tc.function.name);
           toolCallCount++;
@@ -475,10 +490,45 @@ agentRouter.get(
           association: "messages",
           attributes: ["id", "role", "content", "createdAt"],
         }],
-        order: [["updatedAt", "DESC"]],
+        order: [
+          ["updatedAt", "DESC"],
+          [{ model: Message, as: "messages" }, "createdAt", "ASC"],
+        ],
       });
 
       return res.json({ conversations });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+// ─── GET /api/agent/conversations/:id ─────────────────────────────────────────
+/**
+ * Get a single conversation and its full history for the current user.
+ */
+agentRouter.get(
+  "/conversations/:id",
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const storeId = req.storeId as number;
+      const user    = req.user!;
+      const convId  = Number(req.params.id);
+
+      const conversation = await forStore(Conversation, storeId).findOne({
+        where: { id: convId, userId: user.userId },
+        include: [{
+          association: "messages",
+          attributes: ["id", "role", "content", "createdAt"],
+        }],
+        order: [[{ model: Message, as: "messages" }, "createdAt", "ASC"]],
+      });
+
+      if (!conversation) {
+        return res.status(404).json({ error: "Conversation introuvable" });
+      }
+
+      return res.json({ conversation });
     } catch (err) {
       next(err);
     }
