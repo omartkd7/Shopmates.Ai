@@ -10,6 +10,7 @@
     "test:tools": "tsx src/scripts/test-agent-tools.ts",
     "test:read-tools": "tsx src/scripts/test-read-tools.ts",
     "test:confirmation": "tsx src/scripts/test-order-confirmation.ts",
+    "test:guardrails": "tsx src/scripts/test-guardrails.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
