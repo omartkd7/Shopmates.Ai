@@ -16,6 +16,9 @@ export const swaggerSpec = {
     },
   },
   servers: [
+    ...(process.env.PUBLIC_API_URL
+      ? [{ url: process.env.PUBLIC_API_URL.replace(/\/$/, ""), description: "Serveur de production" }]
+      : []),
     {
       url: "http://localhost:4000",
       description: "Serveur de développement local",
