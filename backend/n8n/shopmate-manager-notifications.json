@@ -1,0 +1,50 @@
+{
+  "name": "ShopMate manager notifications",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "shopmate-manager-notifications",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "20a1ac95-905d-4d94-bcc2-7e969fba58cb",
+      "name": "ShopMate webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [260, 300]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $env.TELEGRAM_MANAGER_CHAT_ID }}",
+        "text": "={{ $json.event === 'order.created' ? '📦 ShopMate — nouvelle commande\\nBoutique: ' + $json.storeId + '\\nCommande #' + $json.order.id + ' — ' + $json.order.total + ' DH\\nClient: ' + $json.customer.name + ' (' + ($json.customer.phone || 'sans téléphone') + ')\\nArticles: ' + $json.items.map((item) => item.name + ' x' + item.quantity).join(', ') : '📩 ShopMate — demande client\\nBoutique: ' + $json.storeId + '\\nType: ' + $json.category + '\\nClient: ' + $json.customer.email + '\\nMessage: ' + $json.message }}",
+        "additionalFields": {}
+      },
+      "id": "432864c2-e3b3-4f70-949f-9a3d3e5a6f79",
+      "name": "Notify manager on Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [520, 300],
+      "credentials": {
+        "telegramApi": {
+          "id": "REPLACE_IN_N8N",
+          "name": "ShopMate manager bot"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "ShopMate webhook": {
+      "main": [[{
+        "node": "Notify manager on Telegram",
+        "type": "main",
+        "index": 0
+      }]]
+    }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "versionId": "1d73b092-b2d0-4428-b7cf-ef7e2ecaa4e0",
+  "meta": { "templateCredsSetupCompleted": false },
+  "tags": []
+}

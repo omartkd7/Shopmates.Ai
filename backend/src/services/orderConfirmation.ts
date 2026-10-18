@@ -4,6 +4,7 @@ import { Product, Order, OrderItem, Customer, User, forStore } from "../models";
 import type { ToolExecutionContext } from "./agentTools";
 import type { CreateOrderArgs, CancelOrderArgs } from "../schemas/agentTools";
 import { getCustomerForContext } from "./agentTools";
+import { notifyOrderCreated, type OrderCreatedNotification } from "./n8nNotifications";
 
 export interface PendingOrderAction {
   token: string;
@@ -282,6 +283,7 @@ export async function executeConfirmedAction(
 
   if (pending.action === "createOrder") {
     const args = pending.args as CreateOrderArgs;
+    let notification: OrderCreatedNotification | null = null;
 
     const result = await sequelize.transaction(async (t) => {
       const customer = await getCustomerForContext(context);
@@ -296,6 +298,7 @@ export async function executeConfirmedAction(
         productId: number;
         quantity: number;
         unitPrice: number;
+        name: string;
       }> = [];
 
       // Lock products and verify stock within transaction
@@ -328,6 +331,7 @@ export async function executeConfirmedAction(
           productId: product.id,
           quantity: item.quantity,
           unitPrice,
+          name: product.name ?? "Produit",
         });
       }
 
@@ -345,11 +349,32 @@ export async function executeConfirmedAction(
       // Create OrderItems
       await OrderItem.bulkCreate(
         orderItemsToInsert.map((item) => ({
-          ...item,
+          storeId: item.storeId,
+          customerId: item.customerId,
+          productId: item.productId,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
           orderId: order.id,
         })),
         { transaction: t }
       );
+
+      notification = {
+        storeId,
+        order: { id: order.id, status: order.status, total },
+        customer: {
+          id: customer.id,
+          name: customer.name ?? "Client",
+          email: customer.email ?? "",
+          phone: customer.phone,
+        },
+        items: orderItemsToInsert.map((item) => ({
+          productId: item.productId,
+          name: item.name,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+        })),
+      };
 
       return {
         success: true,
@@ -359,6 +384,10 @@ export async function executeConfirmedAction(
         message: `✅ Commande #${order.id} validée avec succès ! Total : ${total} DH (Paiement à la livraison).`,
       };
     });
+
+    if (notification) {
+      void notifyOrderCreated(notification);
+    }
 
     // Mark as executed for idempotency
     pending.executed = true;

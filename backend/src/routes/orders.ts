@@ -9,6 +9,7 @@ import {
   type CreateOrderInput,
   type UpdateOrderStatusInput,
 } from "../schemas/order";
+import { notifyOrderCreated } from "../services/n8nNotifications";
 
 const ordersRouter = Router();
 
@@ -63,6 +64,7 @@ ordersRouter.post(
           productId: number;
           quantity: number;
           unitPrice: number;
+          name: string;
         }> = [];
 
         // Check stock and lock product rows
@@ -99,6 +101,7 @@ ordersRouter.post(
             productId: product.id,
             quantity: item.quantity,
             unitPrice,
+            name: product.name ?? "Produit",
           });
         }
 
@@ -116,13 +119,40 @@ ordersRouter.post(
         // Create OrderItems
         const createdItems = await OrderItem.bulkCreate(
           orderItemsData.map((data) => ({
-            ...data,
+            storeId: data.storeId,
+            customerId: data.customerId,
+            productId: data.productId,
+            quantity: data.quantity,
+            unitPrice: data.unitPrice,
             orderId: order.id,
           })),
           { transaction: t }
         );
 
-        return { order, items: createdItems };
+        return { order, items: createdItems, notificationItems: orderItemsData };
+      });
+
+      // The order is committed. Notify asynchronously so n8n cannot delay or
+      // roll back a successful COD order.
+      void notifyOrderCreated({
+        storeId,
+        order: {
+          id: result.order.id,
+          status: result.order.status,
+          total: Number(result.order.total),
+        },
+        customer: {
+          id: customer.id,
+          name: customer.name ?? "Client",
+          email: customer.email ?? "",
+          phone: customer.phone,
+        },
+        items: result.notificationItems.map((item) => ({
+          productId: item.productId,
+          name: item.name,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+        })),
       });
 
       return res.status(201).json({

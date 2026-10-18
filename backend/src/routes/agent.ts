@@ -40,6 +40,7 @@ import { z } from "zod";
 import { Op } from "sequelize";
 import { sanitizeForLogging } from "../middlewares/sanitizeLogs";
 import AgentLogRecord from "../models/AgentLog";
+import { notifyManagerRequest } from "../services/n8nNotifications";
 
 const agentRouter = Router();
 
@@ -229,6 +230,15 @@ agentRouter.post(
       if (refusalCheck.shouldRefuse && refusalCheck.refusalMessage) {
         refusalCategory = refusalCheck.category ?? "prohibited_request";
         const replyMessage = refusalCheck.refusalMessage;
+        if (refusalCheck.category === "discount" || refusalCheck.category === "refund") {
+          // This is a notification only; the manager decides whether to act.
+          void notifyManagerRequest({
+            storeId,
+            customer: { userId: user.userId, email: user.email },
+            category: refusalCheck.category,
+            message: userText,
+          });
+        }
 
         const assistantMsg = await Message.create({
           storeId,

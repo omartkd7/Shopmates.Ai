@@ -79,6 +79,10 @@ L'application est **multi-tenant** : chaque donnée est rattachée à un `storeI
   - **Recherche paginée et filtres :** Filtrer par client (`customerId`, identifiant du compte client), période (`fromDate` / `toDate`, format `YYYY-MM-DD`) et résultat (`refused` ou `blocked`).
   - **Détail d'un tour :** `GET /api/agent/logs/:id` retourne la question, la réponse, les outils appelés et leurs arguments validés, les sources RAG, les tokens d'entrée/sortie/total, la latence, le statut et la catégorie de refus ou blocage.
   - **Protection des données :** Les traces affichées sont celles de la boutique authentifiée; les secrets, mots de passe et jetons sont masqués avant leur enregistrement.
+- **Suivi de livraison MCP (`src/mcp/shipmentServer.ts`, `src/services/mcpShipmentClient.ts`) :**
+  - **Serveur MCP séparé :** Expose l'outil `getShipmentStatus` sur `MCP_SERVER_URL`. Les données transporteur sont simulées pour la démonstration et peuvent être remplacées par l'API d'un vrai transporteur.
+  - **Accès à la commande vérifié :** Avant l'appel MCP, le backend retrouve uniquement une commande appartenant au client authentifié et à sa boutique. Sans `orderId`, il utilise la commande la plus récente du client.
+  - **Résilience :** Le client MCP impose un délai de 5 secondes, valide la réponse du serveur, puis retourne un message clair sans erreur interne si le service de suivi est indisponible.
 - **Function Calling — 8 outils agent + Validation Zod + Confirmation explicite (`src/services/agentTools.ts`, `src/services/orderConfirmation.ts`) :**
   - **Allowlist stricte :** Seuls les 8 outils autorisés (`searchProducts`, `getProductDetails`, `checkStock`, `createOrder`, `getOrderStatus`, `listMyOrders`, `cancelOrder`, `getShipmentStatus`) sont acceptés ; tout appel d'outil inconnu est rejeté avec un message d'erreur sûr.
   - **Validation Zod systématique :** Chaque appel d'outil est validé contre un schéma Zod avant exécution ; les arguments malformés ou manquants déclenchent un refus explicite.
@@ -463,6 +467,18 @@ Les documents sont créés au statut `pending` et leurs chunks ont `embedding = 
 npm run dev
 ```
 
+### 6. Démarrer le serveur MCP de suivi
+
+Dans un second terminal, depuis `backend` :
+
+```bash
+npm run mcp
+```
+
+Le serveur de démonstration écoute sur `http://localhost:4010/mcp`. Vérifie que `MCP_SERVER_URL=http://localhost:4010/mcp` est défini dans `backend/.env`, puis démarre aussi l'API avec `npm run dev`. Quand un client demande « Où est ma commande ? », l'agent utilise `getShipmentStatus`, le backend vérifie d'abord que la commande appartient bien à ce client, puis obtient le statut auprès du serveur MCP.
+
+Si le serveur MCP est indisponible ou répond après 5 secondes, l'agent répond que le suivi est temporairement indisponible; il ne révèle pas d'erreur interne ni les données d'une autre commande.
+
 Le serveur s'authentifie auprès de PostgreSQL avant d'écouter sur le port `PORT`. Vérifie l'API avec `http://localhost:4000/health`, puis récupère le catalogue de démonstration avec `http://localhost:4000/api/products`. Cette route publique ne lit que la boutique fixe `ShopMate Demo Store`; elle n'accepte pas de `storeId` fourni par le client. La documentation `/api/docs` n'est pas encore configurée.
 
 Vérifications supplémentaires, toujours depuis `backend` :
@@ -625,14 +641,28 @@ Le thème mobile et les composants partagés respectent fidèlement la charte gr
 ## 🐳 Déploiement
 
 ```bash
-# Tout lancer en local (API + base)
+# From the project root: start the API and a clean pgvector database.
 docker compose up --build
 
-# Build de l'image de production seule
+# Build only the production API image.
 docker build -t shopmate-api ./backend
 ```
 
-Le `Dockerfile` est **multi-stage** (build puis runtime léger). Le `docker-compose.yml` démarre l'image `pgvector/pgvector` et l'API. L'hébergement cible est **Railway** ou **Render**, avec les secrets configurés côté plateforme.
+The root [`docker-compose.yml`](docker-compose.yml) starts `pgvector/pgvector:pg16` and the API. It waits for PostgreSQL to become healthy, runs Sequelize migrations and [`sql/001_init_pgvector.sql`](backend/sql/001_init_pgvector.sql), then starts the API as the non-root `shopmate` user. Both services have health checks.
+
+`backend/.env` is loaded when it exists. For a new local setup, copy `backend/.env.example` to `backend/.env` and replace placeholder API keys before using the AI routes. Database defaults allow the API and database to start from a clean checkout even before that file exists.
+
+### Bonus — notifications n8n
+
+Après chaque commande créée, l'API envoie une notification *best effort* à n8n. Les demandes de remise ou de remboursement refusées par l'assistant sont aussi transmises au gérant. L'écriture de commande reste réussie si n8n est indisponible.
+
+1. Démarrer n8n en local, par exemple avec `docker run --rm -it -p 5678:5678 -v n8n_data:/home/node/.n8n n8nio/n8n`, puis importer [`backend/n8n/shopmate-manager-notifications.json`](backend/n8n/shopmate-manager-notifications.json).
+2. Dans le nœud Telegram, créer les identifiants du bot et renseigner `TELEGRAM_MANAGER_CHAT_ID` dans l'environnement n8n.
+3. Activer le workflow et copier son URL **Production**, par exemple `http://localhost:5678/webhook/shopmate-manager-notifications`.
+4. Mettre cette URL dans `N8N_WEBHOOK_URL` dans `backend/.env`. Définir aussi `N8N_WEBHOOK_SECRET` si le webhook est protégé.
+5. Vérifier la connexion sans compte externe avec `cd backend && npm run test:n8n`.
+
+Le webhook reçoit `order.created` avec la commande, le client et les articles, ou `manager.request` avec une demande de remise/remboursement. Le backend ne transmet jamais de mot de passe ni de token.
 
 ---
 
@@ -649,7 +679,7 @@ Le `Dockerfile` est **multi-stage** (build puis runtime léger). Le `docker-comp
 | 7 | Client LLM provider-agnostique (OpenAI/Claude/DeepSeek) & streaming SSE (`POST /api/agent/chat`) | 🟢 |
 | 8 | Écran chat mobile React Native / Expo : client SSE streaming, cartes produits cliquables, récapitulatif interactif avec boutons Confirmer/Annuler, citation des sources RAG et suivi de commande | 🟢 |
 | 9 | Garde-fous, modération, audit (`AgentLog`) | 🟢 |
-| 10 | Serveur MCP + n8n *(bonus)* | ⚪ |
+| 10 | Serveur MCP de suivi de livraison *(n8n reste un bonus)* | 🟢 |
 | 11 | Docker + déploiement | ⚪ |
 | 12 | Journal de prompts, documentation, soutenance | ⚪ |
 

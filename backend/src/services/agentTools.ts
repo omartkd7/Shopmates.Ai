@@ -253,11 +253,7 @@ export const AGENT_TOOLS: LLMTool[] = [
         properties: {
           orderId: {
             type: "number",
-            description: "Numéro de la commande associée",
-          },
-          trackingNumber: {
-            type: "string",
-            description: "Numéro de suivi transporteur",
+            description: "Numéro de la commande associée. Facultatif : sans numéro, utiliser la commande la plus récente du client connecté.",
           },
         },
       },

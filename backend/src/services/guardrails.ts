@@ -179,9 +179,9 @@ const OFF_TOPIC_PATTERNS = [
 
 export const STANDARD_REFUSALS = {
   discount:
-    "Je ne peux pas modifier les prix ni accorder de remise — c'est en dehors de mon rôle. Je peux transmettre votre demande au responsable de la boutique si vous le souhaitez.",
+    "Je ne peux pas modifier les prix ni accorder de remise — c'est en dehors de mon rôle. Je transmets votre demande au responsable de la boutique.",
   refund:
-    "Les demandes de remboursement ne peuvent pas être traitées directement par l'assistant. Je peux transmettre votre requête au gérant de la boutique pour qu'il prenne contact avec vous.",
+    "Les demandes de remboursement ne peuvent pas être traitées directement par l'assistant. Je transmets votre requête au gérant de la boutique pour qu'il prenne contact avec vous.",
   crossTenant:
     "Pour des raisons strictes de confidentialité et de sécurité, je ne peux accéder qu'à vos propres commandes. Je ne peux pas consulter les données d'autres clients.",
   medicalLegal:

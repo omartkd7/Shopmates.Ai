@@ -1,20 +1,44 @@
 services:
   db:
     image: pgvector/pgvector:pg16
-    container_name: shopmate-postgres
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: shopmate
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-password}
+      POSTGRES_DB: ${DB_NAME:-shopmate}
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d shopmate"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
+      retries: 10
+      start_period: 5s
+
+  api:
+    build:
+      context: .
+    env_file:
+      - ./.env.docker
+      - path: ./.env
+        required: false
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      DB_HOST: db
+    ports:
+      - "4000:4000"
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:4000/health >/dev/null 2>&1"]
+      interval: 10s
+      timeout: 3s
       retries: 5
+      start_period: 20s
+    restart: unless-stopped
 
 volumes:
   postgres_data:
