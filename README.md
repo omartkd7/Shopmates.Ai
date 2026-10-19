@@ -12,7 +12,8 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/statut-en%20développement-yellow" alt="statut">
+  <img src="https://img.shields.io/badge/statut-pr%C3%A9paration%20d%C3%A9mo-blue" alt="statut">
+  <img src="https://img.shields.io/badge/tests-npm%20test%20passing-brightgreen" alt="tests">
   <img src="https://img.shields.io/badge/version-0.1.0-blue" alt="version">
   <img src="https://img.shields.io/badge/licence-MIT-green" alt="licence">
   <img src="https://img.shields.io/badge/projet-Fil%20Rouge%202026-purple" alt="projet">
@@ -402,7 +403,7 @@ cd backend
 npm install
 ```
 
-Copie `backend/.env.example` vers `backend/.env`, puis ajoute les variables locales suivantes. Le fichier `.env.example` est actuellement vide.
+Copie `backend/.env.example` vers `backend/.env`. Le fichier modèle contient des valeurs locales sûres et des placeholders; ne mets jamais de vraies clés dans Git.
 
 ```powershell
 Copy-Item .env.example .env
@@ -479,7 +480,7 @@ Le serveur de démonstration écoute sur `http://localhost:4010/mcp`. Vérifie q
 
 Si le serveur MCP est indisponible ou répond après 5 secondes, l'agent répond que le suivi est temporairement indisponible; il ne révèle pas d'erreur interne ni les données d'une autre commande.
 
-Le serveur s'authentifie auprès de PostgreSQL avant d'écouter sur le port `PORT`. Vérifie l'API avec `http://localhost:4000/health`, puis récupère le catalogue de démonstration avec `http://localhost:4000/api/products`. Cette route publique ne lit que la boutique fixe `ShopMate Demo Store`; elle n'accepte pas de `storeId` fourni par le client. La documentation `/api/docs` n'est pas encore configurée.
+Le serveur s'authentifie auprès de PostgreSQL avant d'écouter sur le port `PORT`. Vérifie l'API avec `http://localhost:4000/health`, le catalogue avec `http://localhost:4000/api/products`, puis Swagger avec `http://localhost:4000/api/docs`. Cette route publique ne lit que la boutique fixe `ShopMate Demo Store`; elle n'accepte pas de `storeId` fourni par le client.
 
 Vérifications supplémentaires, toujours depuis `backend` :
 
@@ -525,7 +526,7 @@ Le thème mobile et les composants partagés respectent fidèlement la charte gr
 | `SEED_ADMIN_PASSWORD` | Mot de passe choisi pour le compte admin seedé (12 caractères min.) | À définir localement |
 | `JWT_SECRET` | Clé secrète de signature des jetons d'accès JWT | `une-cle-secrete-aleatoire-tres-longue` |
 | `JWT_EXPIRES_IN` | Durée de validité des jetons d'accès | `15m` |
-| `CORS_ORIGIN` | Domaines autorisés pour CORS | `http://localhost:8081,http://localhost:19006` |
+| `ALLOWED_ORIGINS` | Domaines autorisés pour CORS, séparés par une virgule | `https://app.example.com` |
 | `OPENAI_API_KEY` | Clé API OpenAI (utilisée pour générer les embeddings RAG) | `sk-...` |
 | `EMBEDDING_MODEL` | Modèle d'embeddings pgvector (1536 dim) | `text-embedding-3-small` |
 | `DEEPSEEK_API_KEY` | Clé API DeepSeek pour la génération conversationnelle | `sk-...` |
@@ -683,8 +684,8 @@ Le webhook reçoit `order.created` avec la commande, le client et les articles, 
 | 8 | Écran chat mobile React Native / Expo : client SSE streaming, cartes produits cliquables, récapitulatif interactif avec boutons Confirmer/Annuler, citation des sources RAG et suivi de commande | 🟢 |
 | 9 | Garde-fous, modération, audit (`AgentLog`) | 🟢 |
 | 10 | Serveur MCP de suivi de livraison *(n8n reste un bonus)* | 🟢 |
-| 11 | Docker + déploiement | ⚪ |
-| 12 | Journal de prompts, documentation, soutenance | ⚪ |
+| 11 | Docker prêt ; déploiement public à vérifier sur Railway ou Render | 🟡 |
+| 12 | Journal de prompts, documentation, démonstration et soutenance | 🟡 |
 
 🟢 fait · 🟡 en cours · ⚪ à faire
 
@@ -697,6 +698,8 @@ Le webhook reçoit `order.created` avec la commande, le client et les articles, 
 | `docs/cahier-des-charges.pdf` | Périmètre, 38 besoins fonctionnels, 18 non fonctionnels, critères d'acceptation |
 | `docs/conception-uml.md` | Cas d'utilisation, diagramme de classes, séquence, ERD |
 | `docs/journal-de-prompts.md` | Vibe coding documenté — livrable évalué (sessions, bugs, décisions) |
+| `docs/demo-script.md` | Déroulé de démo, plan B et checklist de répétition |
+| `docs/clean-clone-verification.md` | Procédure reproductible à exécuter et consigner depuis un clone propre |
 | `stitch_shopmate/shopmate_ai/DESIGN.md` | Design System, charte graphique et spécifications UI |
 | `http://localhost:4000/api/docs` | Documentation Swagger interactive (disponible en local) |
 
