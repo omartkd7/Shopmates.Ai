@@ -1,5 +1,6 @@
 .env
 node_modules
 dist
+.test-dist
 .DS_Store
 info.text

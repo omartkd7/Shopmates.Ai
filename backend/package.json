@@ -16,7 +16,8 @@
     "test:guardrails": "tsx src/scripts/test-guardrails.ts",
     "test:cost-limits": "tsx src/scripts/test-agent-cost-limits.ts",
     "test:n8n": "tsx src/scripts/test-n8n-notifications.ts",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test:auth-tenant": "tsx src/scripts/test-auth-tenant.ts",
+    "test": "tsc --outDir .test-dist && node .test-dist/scripts/test-auth-tenant.js && node .test-dist/scripts/test-agent-tools.js && node .test-dist/scripts/test-order-confirmation.js && node .test-dist/scripts/test-guardrails.js && node .test-dist/scripts/test-agent-cost-limits.js && node .test-dist/scripts/test-n8n-notifications.js"
   },
   "keywords": [],
   "author": "",

@@ -485,8 +485,11 @@ Vérifications supplémentaires, toujours depuis `backend` :
 
 ```bash
 npx --no-install tsc --noEmit
+npm test
 npx --no-install sequelize-cli db:migrate:status --config src/config/sequelize-cli.js --migrations-path migrations --env development
 ```
+
+`npm test` vérifie les cas critiques sans dépendre d'une base locale : connexion, rotation et révocation des refresh tokens; isolation par `storeId`; accès aux commandes limité au client propriétaire; validation Zod et allowlist des 8 outils; confirmation explicite et cohérence du stock; garde-fous; limite de coût; webhook n8n. GitHub Actions exécute la même commande à chaque modification du backend.
 
 Pour tester une association, charge les modèles depuis `src/models`, puis fais une requête de lecture avec `include`, par exemple `forStore(Customer, storeId).findAll({ include: [{ association: Customer.associations.purchasedProducts }] })`. Tu peux aussi tester `Store.associations.owner`. N'exécute ces vérifications que sur une base locale/de test.
 
