@@ -20,6 +20,7 @@ import { Loader } from "@/src/components/Loader";
 import { EmptyState } from "@/src/components/EmptyState";
 import { ErrorState } from "@/src/components/ErrorState";
 import { Button } from "@/src/components/Button";
+import { BrandHeader } from "@/src/components/BrandHeader";
 
 interface OrderItemData {
   id: number;
@@ -115,6 +116,7 @@ export default function OrdersScreen() {
   if (isLoading) {
     return (
       <SafeAreaView style={styles.screen} edges={["top"]}>
+        <BrandHeader />
         <View style={styles.header}>
           <Text style={styles.title}>Mes Commandes</Text>
           <Text style={styles.subtitle}>Suivez l'état de vos livraisons.</Text>
@@ -127,6 +129,7 @@ export default function OrdersScreen() {
   if (error && orders.length === 0) {
     return (
       <SafeAreaView style={styles.screen} edges={["top"]}>
+        <BrandHeader />
         <View style={styles.header}>
           <Text style={styles.title}>Mes Commandes</Text>
         </View>
@@ -137,6 +140,7 @@ export default function OrdersScreen() {
 
   return (
     <SafeAreaView style={styles.screen} edges={["top"]}>
+      <BrandHeader />
       <FlatList
         data={orders}
         keyExtractor={(item) => String(item.id)}
@@ -304,11 +308,12 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-end",
-    paddingVertical: spacingTokens.lg,
+    paddingTop: spacingTokens.xl,
+    paddingBottom: spacingTokens.lg,
   },
   title: {
-    fontSize: 24,
-    fontWeight: "700",
+    fontSize: 32,
+    fontWeight: "800",
     color: colorTokens.ink,
   },
   subtitle: {

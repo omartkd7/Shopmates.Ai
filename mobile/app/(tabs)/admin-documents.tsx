@@ -14,6 +14,7 @@ import { router } from "expo-router";
 import { apiClient } from "@/src/api/client";
 import { useAuthStore } from "@/src/stores/authStore";
 import { Button } from "@/src/components/Button";
+import { BrandHeader } from "@/src/components/BrandHeader";
 import { colorTokens, radiusTokens, spacingTokens } from "@/src/theme/tokens";
 
 type RagDocument = {
@@ -125,6 +126,7 @@ export default function AdminDocumentsScreen() {
 
   return (
     <SafeAreaView style={styles.screen} edges={["top"]}>
+      <BrandHeader />
       <ScrollView contentContainerStyle={styles.content}>
         <Pressable onPress={() => router.back()}><Text style={styles.back}>‹ Profil</Text></Pressable>
         <Text style={styles.title}>Documents de connaissance IA</Text>

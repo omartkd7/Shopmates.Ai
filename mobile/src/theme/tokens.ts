@@ -26,6 +26,8 @@ export const colorTokens = {
   tertiary: "#006768",
   tertiaryContainer: "#008283",
   onTertiary: "#ffffff",
+  inverseSurface: "#392e2b",
+  inverseOnSurface: "#ffede8",
   danger: "#ba1a1a",
   error: "#ba1a1a",
   errorContainer: "#ffdad6",

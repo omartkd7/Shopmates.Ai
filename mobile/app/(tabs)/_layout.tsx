@@ -28,21 +28,21 @@ export default function TabLayout() {
       }}
     >
       <Tabs.Screen
-        name="index"
+        name="chat"
         options={{
-          title: "Boutique",
+          title: "Assistant",
           tabBarIcon: ({ focused }) => (
-            <Text style={{ fontSize: 20, opacity: focused ? 1 : 0.7 }}>🛍️</Text>
+            <Text style={{ fontSize: 20, opacity: focused ? 1 : 0.7 }}>▤</Text>
           ),
         }}
       />
       <Tabs.Screen
-        name="chat"
+        name="index"
         options={{
-          title: "Assistant IA",
+          title: "Boutique",
           tabBarIcon: ({ focused }) => (
             <View style={{ alignItems: "center" }}>
-              <Text style={{ fontSize: 20, opacity: focused ? 1 : 0.7 }}>🤖</Text>
+              <Text style={{ fontSize: 20, opacity: focused ? 1 : 0.7 }}>♧</Text>
             </View>
           ),
         }}

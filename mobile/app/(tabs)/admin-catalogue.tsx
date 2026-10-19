@@ -15,6 +15,7 @@ import { apiClient } from "@/src/api/client";
 import { useAuthStore } from "@/src/stores/authStore";
 import { Category, Product } from "@/src/stores/catalogStore";
 import { Button } from "@/src/components/Button";
+import { BrandHeader } from "@/src/components/BrandHeader";
 import { colorTokens, radiusTokens, spacingTokens } from "@/src/theme/tokens";
 
 type CatalogTab = "products" | "categories";
@@ -131,6 +132,7 @@ export default function AdminCatalogScreen() {
 
   return (
     <SafeAreaView style={styles.screen} edges={["top"]}>
+      <BrandHeader />
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <View style={styles.header}>
           <Pressable onPress={() => router.back()}><Text style={styles.back}>‹ Profil</Text></Pressable>

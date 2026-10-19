@@ -1,6 +1,7 @@
 import React from "react";
 import {
   Alert,
+  Image,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -17,6 +18,7 @@ import {
 } from "@/src/theme/tokens";
 import { Card } from "@/src/components/Card";
 import { Button } from "@/src/components/Button";
+import { BrandHeader } from "@/src/components/BrandHeader";
 import { router, type Href } from "expo-router";
 
 export default function ProfileScreen() {
@@ -44,13 +46,12 @@ export default function ProfileScreen() {
 
   return (
     <SafeAreaView style={styles.screen} edges={["top"]}>
+      <BrandHeader />
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Profile Card Header */}
         <View style={styles.profileHeader}>
           <View style={styles.avatarContainer}>
-            <View style={styles.avatar}>
-              <Text style={styles.avatarInitials}>{initials}</Text>
-            </View>
+            <Image source={require("../../assets/images/profile-demo.png")} style={styles.avatar} accessibilityLabel={`Photo de ${displayName}`} />
             <View style={styles.roleBadge}>
               <Text style={styles.roleText}>{user?.role || "CUSTOMER"}</Text>
             </View>
@@ -222,11 +223,11 @@ const styles = StyleSheet.create({
     height: 80,
     borderRadius: 40,
     backgroundColor: colorTokens.primaryContainer,
-    alignItems: "center",
-    justifyContent: "center",
+    borderWidth: 4,
+    borderColor: colorTokens.surfaceContainerLowest,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.16,
     shadowRadius: 6,
     elevation: 3,
   },

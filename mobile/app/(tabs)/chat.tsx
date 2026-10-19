@@ -27,6 +27,7 @@ import {
   radiusTokens,
   spacingTokens,
 } from "@/src/theme/tokens";
+import { BrandHeader } from "@/src/components/BrandHeader";
 
 export interface ProductCardData {
   id: number;
@@ -529,6 +530,7 @@ export default function ChatScreen() {
 
   return (
     <SafeAreaView style={styles.screen} edges={["top"]}>
+      <BrandHeader />
       {/* Top Header */}
       <View style={styles.header}>
         <View style={styles.brandRow}>

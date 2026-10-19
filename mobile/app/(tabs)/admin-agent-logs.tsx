@@ -13,6 +13,7 @@ import { router } from "expo-router";
 import { apiClient } from "@/src/api/client";
 import { useAuthStore } from "@/src/stores/authStore";
 import { colorTokens, radiusTokens, spacingTokens } from "@/src/theme/tokens";
+import { BrandHeader } from "@/src/components/BrandHeader";
 
 type Disposition = "all" | "refused" | "blocked";
 type Customer = { id: number; name: string; email: string } | null;
@@ -119,6 +120,7 @@ export default function AdminAgentLogsScreen() {
 
   return (
     <SafeAreaView style={styles.screen} edges={["top"]}>
+      <BrandHeader />
       <ScrollView contentContainerStyle={styles.content}>
         <Pressable onPress={() => selected ? setSelected(null) : router.back()}>
           <Text style={styles.back}>‹ {selected ? "Journal" : "Profil"}</Text>

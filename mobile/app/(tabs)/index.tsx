@@ -19,7 +19,7 @@ import {
   spacingTokens,
   typographyTokens,
 } from "@/src/theme/tokens";
-import { Loader, EmptyState, ErrorState } from "@/src/components";
+import { BrandHeader, Loader, EmptyState, ErrorState } from "@/src/components";
 
 const PRICE_FILTERS = [
   { label: "Tous", min: undefined, max: undefined },
@@ -75,6 +75,7 @@ export default function CatalogScreen() {
 
   return (
     <SafeAreaView style={styles.screen} edges={["top"]}>
+      <BrandHeader />
       <FlatList
         data={products}
         keyExtractor={(item) => String(item.id)}
@@ -176,30 +177,12 @@ function CatalogHeader({
 }) {
   return (
     <View style={styles.header}>
-      {/* Brand row */}
-      <View style={styles.brandRow}>
-        <View style={styles.brandMark}>
-          <Text style={styles.brandMarkText}>S</Text>
-        </View>
-        <View>
-          <Text style={styles.brandName}>SHOPMATE AI</Text>
-          <Text style={styles.greetingText}>
-            Bonjour, {user?.name ? user.name.split(" ")[0] : "Client"} 👋
-          </Text>
-        </View>
-        <View style={styles.demoBadge}>
-          <Text style={styles.demoBadgeText}>PAIEMENT COD</Text>
-        </View>
-      </View>
-
-      <Text style={styles.title}>Trouvez votre{`\n`}prochain coup de cœur.</Text>
-      <Text style={styles.subtitle}>{count} articles prêts à commander en livraison</Text>
-
       {/* Search Input Bar */}
       <View style={styles.searchContainer}>
+        <Text style={styles.searchIcon}>⌕</Text>
         <TextInput
           accessibilityLabel="Rechercher des produits"
-          placeholder="Rechercher (ex. huile d'argan, tapis, t-shirt)..."
+          placeholder="Chercher un produit..."
           placeholderTextColor={colorTokens.muted}
           value={search}
           onChangeText={onSearchChange}
@@ -218,6 +201,7 @@ function CatalogHeader({
             <Text style={{ fontSize: 14, color: colorTokens.muted }}>✕</Text>
           </Pressable>
         ) : null}
+        {!search ? <Text style={styles.micIcon}>♩</Text> : null}
       </View>
 
       {/* Category Pills */}
@@ -294,26 +278,18 @@ function ProductCard({
       onPress={onPress}
     >
       <View style={styles.productArtwork}>
-        <Text style={styles.productArtworkLabel}>
-          {product.category?.name ?? "SHOPMATE"}
-        </Text>
+        <View style={styles.codBadge}><Text style={styles.codBadgeText}>✦ COD</Text></View>
         <Text style={styles.productArtworkMark}>{product.name.charAt(0)}</Text>
       </View>
 
-      <Text style={styles.productCategory}>
-        {product.category?.name ?? "En vedette"}
-      </Text>
       <Text numberOfLines={2} style={styles.productName}>
         {product.name}
       </Text>
+      <Text numberOfLines={1} style={styles.productCategory}>{product.category?.name ?? "Sélection ShopMate"}</Text>
 
       <View style={styles.productFooter}>
-        <Text style={styles.productPrice}>{Number(product.price).toFixed(2)} MAD</Text>
-        <Text
-          style={[styles.productStock, isOutOfStock && styles.productStockOut]}
-        >
-          {isOutOfStock ? "Rupture" : `${product.stock} en stock`}
-        </Text>
+        <Text style={styles.productPrice}>{Number(product.price).toFixed(0)} DH</Text>
+        <View style={[styles.addButton, isOutOfStock && styles.addButtonDisabled]}><Text style={styles.addButtonText}>{isOutOfStock ? "×" : "+"}</Text></View>
       </View>
     </Pressable>
   );
@@ -329,7 +305,7 @@ const styles = StyleSheet.create({
     paddingBottom: spacingTokens.xl,
   },
   header: {
-    paddingTop: spacingTokens.sm,
+    paddingTop: spacingTokens.md,
     paddingBottom: spacingTokens.md,
   },
   brandRow: {
@@ -391,15 +367,16 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     height: 46,
-    paddingHorizontal: spacingTokens.md,
+    paddingLeft: 44,
     paddingRight: 36,
-    borderWidth: 1,
-    borderColor: colorTokens.border,
+    borderWidth: 0,
     borderRadius: radiusTokens.lg,
     color: colorTokens.ink,
-    backgroundColor: colorTokens.surfaceContainerLowest,
+    backgroundColor: colorTokens.surfaceContainerLow,
     fontSize: 14,
   },
+  searchIcon: { position: "absolute", left: 14, top: 8, zIndex: 1, fontSize: 30, color: colorTokens.outline },
+  micIcon: { position: "absolute", right: 14, top: 13, fontSize: 19, color: colorTokens.ink },
   searchClearBtn: {
     position: "absolute",
     right: 12,
@@ -407,7 +384,7 @@ const styles = StyleSheet.create({
     padding: 2,
   },
   filterSection: {
-    marginTop: spacingTokens.sm,
+    marginTop: spacingTokens.md,
   },
   filterLabel: {
     fontSize: 10,
@@ -420,13 +397,12 @@ const styles = StyleSheet.create({
     gap: spacingTokens.xs,
   },
   categoryButton: {
-    minHeight: 32,
+    minHeight: 44,
     justifyContent: "center",
     paddingHorizontal: 12,
-    borderWidth: 1,
-    borderColor: colorTokens.border,
+    borderWidth: 0,
     borderRadius: radiusTokens.full,
-    backgroundColor: colorTokens.surfaceContainerLowest,
+    backgroundColor: colorTokens.surfaceContainerHigh,
   },
   categoryButtonSelected: {
     borderColor: colorTokens.primary,
@@ -473,48 +449,43 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
     padding: spacingTokens.sm,
-    borderWidth: 1,
-    borderColor: colorTokens.border,
+    borderWidth: 0,
     borderRadius: radiusTokens.lg,
-    backgroundColor: colorTokens.surfaceContainerLowest,
+    backgroundColor: colorTokens.surfaceContainer,
+    overflow: "hidden",
   },
   productCardPressed: {
     transform: [{ scale: 0.98 }],
     opacity: 0.9,
   },
   productArtwork: {
-    height: 110,
+    height: 148,
     padding: spacingTokens.sm,
     justifyContent: "space-between",
-    borderRadius: radiusTokens.md,
-    backgroundColor: colorTokens.brand,
+    borderRadius: 0,
+    backgroundColor: colorTokens.surfaceContainerHighest,
   },
-  productArtworkLabel: {
-    color: colorTokens.surface,
-    fontSize: 9,
-    fontWeight: "700",
-    textTransform: "uppercase",
-  },
+  codBadge: { alignSelf: "flex-end", paddingHorizontal: 8, paddingVertical: 4, borderRadius: radiusTokens.md, backgroundColor: colorTokens.inverseSurface },
+  codBadgeText: { color: colorTokens.inverseOnSurface, fontSize: 10, fontWeight: "800", letterSpacing: 0.6 },
   productArtworkMark: {
     alignSelf: "flex-end",
-    color: "rgba(255,255,255,0.25)",
-    fontSize: 48,
+    color: colorTokens.primaryContainer,
+    fontSize: 66,
     lineHeight: 50,
     fontWeight: "900",
   },
   productCategory: {
-    marginTop: spacingTokens.xs,
+    marginTop: 2,
     color: colorTokens.muted,
-    fontSize: 10,
-    textTransform: "uppercase",
+    fontSize: 12,
   },
   productName: {
-    minHeight: 38,
-    marginTop: 2,
+    minHeight: 44,
+    marginTop: spacingTokens.md,
     color: colorTokens.ink,
-    fontSize: 13,
-    lineHeight: 18,
-    fontWeight: "700",
+    fontSize: 17,
+    lineHeight: 22,
+    fontWeight: "600",
   },
   productFooter: {
     flexDirection: "row",
@@ -525,17 +496,12 @@ const styles = StyleSheet.create({
   },
   productPrice: {
     color: colorTokens.primary,
-    fontSize: 13,
+    fontSize: 18,
     fontWeight: "800",
   },
-  productStock: {
-    color: colorTokens.muted,
-    fontSize: 10,
-  },
-  productStockOut: {
-    color: colorTokens.danger,
-    fontWeight: "700",
-  },
+  addButton: { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center", backgroundColor: colorTokens.primaryContainer },
+  addButtonDisabled: { backgroundColor: colorTokens.surfaceDim },
+  addButtonText: { color: colorTokens.onPrimary, fontSize: 28, lineHeight: 31, fontWeight: "300" },
   loadingMoreContainer: {
     flexDirection: "row",
     alignItems: "center",
