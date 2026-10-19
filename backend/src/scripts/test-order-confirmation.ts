@@ -11,6 +11,7 @@ import {
   isAffirmativeConfirmation,
 } from "../services/orderConfirmation";
 import { executeToolCall, type ToolExecutionContext } from "../services/agentTools";
+import { createOrderSchema, orderConfirmationSchema } from "../schemas/order";
 
 /**
  * Test script to verify the explicit confirmation flow for createOrder and cancelOrder:
@@ -55,6 +56,22 @@ async function runOrderConfirmationTest() {
   assert("'wakha' (Darija) is recognized as explicit confirmation", isAffirmativeConfirmation("wakha"));
   assert("'Non' is NOT an affirmative confirmation", !isAffirmativeConfirmation("Non"));
   assert("'Je la veux' is NOT a confirmation (it is an order intent)", !isAffirmativeConfirmation("Je la veux"));
+  assert(
+    "REST order creation rejects requests without explicit confirmation",
+    !createOrderSchema.safeParse({ items: [{ productId: 1, quantity: 1 }] }).success
+  );
+  assert(
+    "REST order creation accepts explicit confirmation",
+    createOrderSchema.safeParse({ confirmed: true, items: [{ productId: 1, quantity: 1 }] }).success
+  );
+  assert(
+    "REST cancellation rejects requests without explicit confirmation",
+    !orderConfirmationSchema.safeParse({}).success
+  );
+  assert(
+    "REST cancellation accepts explicit confirmation",
+    orderConfirmationSchema.safeParse({ confirmed: true }).success
+  );
   console.log();
 
   // Check if live PostgreSQL database is accessible
@@ -146,9 +163,13 @@ async function runOrderConfirmationTest() {
     console.log("✅ 3. Testing Explicit Confirmation ('Oui'):");
     console.log("   User Prompt: 'Oui'");
 
-    const confirmResult = await executeConfirmedAction(conversationId, context);
+    const [confirmResult, concurrentConfirmResult] = await Promise.all([
+      executeConfirmedAction(conversationId, context),
+      executeConfirmedAction(conversationId, context),
+    ]);
     assert("Order write succeeded inside DB transaction", confirmResult.success === true);
     assert("Returned valid order ID", typeof confirmResult.orderId === "number");
+    assert("Concurrent confirmation reuses the same order", concurrentConfirmResult.orderId === confirmResult.orderId);
 
     // Exactly ONE order created
     const ordersAfterTurn2 = await Order.count({ where: { storeId: store.id } });

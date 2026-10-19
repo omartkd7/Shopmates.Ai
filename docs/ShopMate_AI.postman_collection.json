@@ -416,7 +416,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"items\": [\n    { \"productId\": 1, \"quantity\": 1 }\n  ],\n  \"customerName\": \"Omar Fahid\",\n  \"customerPhone\": \"+212612345678\",\n  \"shippingAddress\": \"Quartier Maârif, Casablanca\"\n}"
+              "raw": "{\n  \"confirmed\": true,\n  \"items\": [\n    { \"productId\": 1, \"quantity\": 1 }\n  ],\n  \"customerName\": \"Omar Fahid\",\n  \"customerPhone\": \"+212612345678\",\n  \"shippingAddress\": \"Quartier Maârif, Casablanca\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/orders",
@@ -458,8 +458,13 @@
           "request": {
             "method": "POST",
             "header": [
+              { "key": "Content-Type", "value": "application/json" },
               { "key": "Authorization", "value": "Bearer {{accessToken}}" }
             ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"confirmed\": true\n}"
+            },
             "url": {
               "raw": "{{baseUrl}}/api/orders/{{orderId}}/cancel",
               "host": ["{{baseUrl}}"],

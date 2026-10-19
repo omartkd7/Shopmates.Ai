@@ -155,9 +155,11 @@ agentRouter.post(
     // ── Client disconnect guard ───────────────────────────────────────────────
     const abortController = new AbortController();
     let clientConnected = true;
-    req.on("close", () => {
-      clientConnected = false;
-      abortController.abort();
+    res.on("close", () => {
+      if (!res.writableEnded) {
+        clientConnected = false;
+        abortController.abort();
+      }
     });
 
     /** Write a JSON SSE event only when client is still connected. */

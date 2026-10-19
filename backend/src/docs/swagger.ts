@@ -594,8 +594,9 @@ export const swaggerSpec = {
             "application/json": {
               schema: {
                 type: "object",
-                required: ["items"],
+                required: ["confirmed", "items"],
                 properties: {
+                  confirmed: { type: "boolean", enum: [true], example: true },
                   items: {
                     type: "array",
                     items: {
@@ -639,6 +640,20 @@ export const swaggerSpec = {
         summary: "Annuler une commande et restituer le stock",
         security: [{ BearerAuth: [] }],
         parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["confirmed"],
+                properties: {
+                  confirmed: { type: "boolean", enum: [true], example: true },
+                },
+              },
+            },
+          },
+        },
         responses: {
           200: { description: "Commande annulée et stock réintégré" },
           400: { description: "Commande déjà annulée ou expédiée" },

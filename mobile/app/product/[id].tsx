@@ -109,6 +109,7 @@ export default function ProductDetailScreen() {
             setIsOrdering(true);
             try {
               await apiClient.post("/api/orders", {
+                confirmed: true,
                 items: [{ productId: product.id, quantity }],
               });
 

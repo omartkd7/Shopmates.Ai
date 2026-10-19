@@ -22,6 +22,7 @@ export interface PendingOrderAction {
 
 // In-memory pending confirmation store keyed by conversationId
 const pendingConfirmations = new Map<number, PendingOrderAction>();
+const confirmationExecutions = new Map<number, Promise<Record<string, any>>>();
 
 // Confirmation TTL: 15 minutes
 const CONFIRMATION_TTL_MS = 15 * 60 * 1000;
@@ -259,6 +260,22 @@ export async function initiateCancelOrderRecap(
  * Guarantees idempotency (retrying with the same pending confirmation returns existing order).
  */
 export async function executeConfirmedAction(
+  conversationId: number,
+  context: ToolExecutionContext
+): Promise<Record<string, any>> {
+  const activeExecution = confirmationExecutions.get(conversationId);
+  if (activeExecution) return activeExecution;
+
+  const execution = performConfirmedAction(conversationId, context);
+  confirmationExecutions.set(conversationId, execution);
+  try {
+    return await execution;
+  } finally {
+    confirmationExecutions.delete(conversationId);
+  }
+}
+
+async function performConfirmedAction(
   conversationId: number,
   context: ToolExecutionContext
 ): Promise<Record<string, any>> {

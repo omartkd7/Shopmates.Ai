@@ -5,6 +5,7 @@ import { authenticate, injectTenant, requireRole, validate } from "../middleware
 import {
   createOrderSchema,
   orderIdParamSchema,
+  orderConfirmationSchema,
   updateOrderStatusSchema,
   type CreateOrderInput,
   type UpdateOrderStatusInput,
@@ -298,6 +299,7 @@ ordersRouter.get(
 ordersRouter.post(
   "/:id/cancel",
   validate(orderIdParamSchema, "params"),
+  validate(orderConfirmationSchema, "body"),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const storeId = req.storeId as number;

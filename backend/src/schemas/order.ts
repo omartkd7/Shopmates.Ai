@@ -6,12 +6,17 @@ export const orderItemInputSchema = z.object({
 });
 
 export const createOrderSchema = z.object({
+  confirmed: z.literal(true),
   items: z
     .array(orderItemInputSchema)
     .min(1, "Order must contain at least one product"),
   customerName: z.string().trim().optional(),
   customerPhone: z.string().trim().optional(),
   shippingAddress: z.string().trim().optional(),
+});
+
+export const orderConfirmationSchema = z.object({
+  confirmed: z.literal(true),
 });
 
 export const orderIdParamSchema = z.object({

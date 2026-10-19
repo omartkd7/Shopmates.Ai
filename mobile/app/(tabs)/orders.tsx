@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback } from "react";
 import {
+  Alert,
   FlatList,
   Pressable,
   RefreshControl,
@@ -105,12 +106,27 @@ export default function OrdersScreen() {
   };
 
   const handleCancelOrder = async (orderId: number) => {
-    try {
-      await apiClient.post(`/api/orders/${orderId}/cancel`);
-      fetchOrders();
-    } catch {
-      // Ignored or handled
-    }
+    Alert.alert(
+      "Annuler la commande ?",
+      `Voulez-vous vraiment annuler la commande #${orderId} ?`,
+      [
+        { text: "Garder la commande", style: "cancel" },
+        {
+          text: "Oui, annuler",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await apiClient.post(`/api/orders/${orderId}/cancel`, {
+                confirmed: true,
+              });
+              fetchOrders();
+            } catch {
+              Alert.alert("Erreur", "Impossible d'annuler la commande. Réessayez.");
+            }
+          },
+        },
+      ]
+    );
   };
 
   if (isLoading) {

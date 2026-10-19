@@ -56,13 +56,13 @@ L'application est **multi-tenant** : chaque donnée est rattachée à un `storeI
 ### Dernière mise à jour
 
 - **Parcours d'Achat Intégré dans le Chat & Cartes Interactives (`mobile/app/(tabs)/chat.tsx`) :**
-  - **Cartes produits cliquables :** Les résultats de recherche de l'agent (`searchProducts`) sont rendus sous forme de carrousel de cartes produit interactives avec nom, catégorie, pastille de stock en direct (*"En stock"* / *"Rupture"*) et prix en DH, avec redirection directe vers la fiche produit [`/product/[id]`](file:///c:/Users/User/Desktop/full%20roge%20projcted%20ccfbs/Shopmates.Ai/mobile/app/product/%5Bid%5D.tsx).
+  - **Cartes produits cliquables :** Les résultats de recherche de l'agent (`searchProducts`) sont rendus sous forme de carrousel de cartes produit interactives avec nom, catégorie, pastille de stock en direct (*"En stock"* / *"Rupture"*) et prix en DH, avec redirection directe vers la fiche produit [`/product/[id]`](mobile/app/product/[id].tsx).
   - **Carte de récapitulatif avec confirmation explicite :** Lorsque l'agent prépare une commande (`createOrder`), il génère une carte de prévisualisation avec le détail des articles, l'adresse et le montant total COD. Deux boutons interactifs permettent de valider (**« ✅ Confirmer la commande »** qui envoie *"Oui"*) ou d'annuler (**« Non, annuler »**), garantissant qu'aucune écriture en base n'a lieu avant le consentement explicite du client.
-  - **Carte de commande créée :** Dès que la commande est enregistrée dans PostgreSQL, une carte de succès verte s'affiche avec le numéro de commande (`Commande #1234`) et un bouton direct **« 📦 Voir ma commande ➔ »** redirigeant vers l'écran de suivi [`/orders`](file:///c:/Users/User/Desktop/full%20roge%20projcted%20ccfbs/Shopmates.Ai/mobile/app/%28tabs%29/orders.tsx).
+  - **Carte de commande créée :** Dès que la commande est enregistrée dans PostgreSQL, une carte de succès verte s'affiche avec le numéro de commande (`Commande #1234`) et un bouton direct **« 📦 Voir ma commande ➔ »** redirigeant vers l'écran de suivi [`/orders`](mobile/app/(tabs)/orders.tsx).
   - **Citations documentaires RAG :** Affichage soigné des sources vérifiées (`📄 politique-livraison.md (84%)`) sous les réponses de l'agent pour une traçabilité et une transparence totale.
   - **Flux d'achat conversationnel complet :** Recherche de produit ➔ consultation de la fiche ➔ récapitulatif ➔ confirmation ➔ commande validée, le tout directement au sein du chat mobile.
 - **Streaming SSE temps réel & Persistance de l'historique (`POST /api/agent/chat` & `GET /api/agent/conversations`) :**
-  - **Streaming SSE token par token :** Support complet de `text/event-stream` avec flush immédiat des headers (`res.flushHeaders()`) et neutralisation du buffering proxy (`X-Accel-Buffering: no`).
+  - **Événements SSE temps réel :** Le serveur envoie les événements `start`, `source`, `tool_call` et `tool_result` au fil du traitement. La réponse finale est envoyée après la modération de sortie; elle n'est pas diffusée token par token.
   - **Protocole d'événements typés :** Émission en temps réel des événements `start` (id conversation), `source` (chunks RAG avec similarités), `tool_call` & `tool_result` (télémétrie des outils), `token` (morceaux de réponse), `confirmation` (état de commande COD), `done` (bilan final) et `error`.
   - **Gestion proactive de la déconnexion client :** Détection de la fermeture de connexion via `req.on("close")` déclenchant `AbortController.abort()` sur l'appel LLM pour interrompre immédiatement la consommation de tokens.
   - **Rate limiting par utilisateur :** Middleware `agentRateLimiter` limitant chaque utilisateur authentifié à **20 messages par minute** (protection anti-abus et maîtrise des coûts).
@@ -70,7 +70,7 @@ L'application est **multi-tenant** : chaque donnée est rattachée à un `storeI
   - **Endpoints d'historique :** `GET /api/agent/conversations` (liste des conversations avec messages ordonnés) et `GET /api/agent/conversations/:id` (détail d'une conversation).
 - **Écran de Chat Mobile avec client SSE autonome (`mobile/app/(tabs)/chat.tsx` & `mobile/src/api/agentChat.ts`) :**
   - **Client SSE Expo / React Native :** Implémentation basée sur `XMLHttpRequest` (`onprogress` / `readyState === 3`) sans dépendances natives externes (compatible Expo Go et Android/iOS/Web).
-  - **Rendu progressif token par token :** Affichage fluide et dynamique de la réponse au fil de l'eau avec auto-scroll automatique vers le bas.
+  - **Rendu des événements SSE :** Le client affiche les sources et l'activité des outils pendant le traitement, puis la réponse complète après modération, avec auto-scroll automatique vers le bas.
   - **Télémétrie en direct de l'agent :** Indicateurs contextuels (*"🔍 Consultation du catalogue..."*, *"📦 Accès aux commandes..."*).
   - **Citations de sources RAG :** Badges cliquables affichant le nom du document source et son score de confiance.
   - **Gestion des erreurs & réessai :** Prise en charge des déconnexions et du rate limit HTTP 429 avec bandeau d'alerte et bouton **"🔄 Réessayer"**.
@@ -99,7 +99,7 @@ L'application est **multi-tenant** : chaque donnée est rattachée à un `storeI
   - **Streaming temps réel & Tool-Calling :** Support du streaming en Server-Sent Events (`text/event-stream`) avec accumulation et gestion des appels d'outils (`onToolCalls`).
   - **Prompt système avec garde-fous stricts :** Rôle conseiller de vente ShopMate, détection automatique Français/Darija, réponses basées RAG avec citation des sources `(source : ...)`, séparation stricte (stock/prix direct depuis la base), règles de refus obligatoires (remises, prix, remboursements directs, conseils juridiques/médicaux).
   - **Sécurité & Résilience :** Protection contre les injections de prompt (documents = données pures), limite de tokens (`1024`), timeout strict (30s) et retries automatiques sur erreurs réseau / 5xx.
-  - **Script de test & Validation :** Commande `npm run test:llm` (`src/scripts/test-llm.ts`) validant les 6 garde-fous du prompt système et exécutant un appel de test avec réponse streamée token par token.
+  - **Script de test & Validation :** Commande `npm run test:llm` (`src/scripts/test-llm.ts`) validant les garde-fous du prompt système et vérifiant la réception de la réponse depuis le flux du fournisseur.
   - **Traçabilité :** Journalisation de chaque interaction dans `AgentLog` (modèle utilisé, statut, message utilisateur et assistant sans fuite de secrets).
   - **Écran Chat Mobile (`mobile/app/(tabs)/chat.tsx`) :** Interface conversationnelle complète avec suggestions rapides, bulles de messages stylisées (utilisateur/assistant), intégration API `/api/agent/chat`, et affichage de l'état de chargement.
 - **Pipeline RAG — Ingestion de documents (`src/services/rag.ts` + `POST /api/documents`) :**
@@ -118,7 +118,7 @@ L'application est **multi-tenant** : chaque donnée est rattachée à un `storeI
   - Route de test `GET /api/documents/search?q=...` pour valider la récupération depuis Postman.
 - **Catalogue Produits Mobile (Écrans Explore & Détail) :**
   - **Écran Catalogue (`mobile/app/(tabs)/index.tsx`) :** Barre de recherche en temps réel, carrousel de filtres par catégorie avec pastilles actives, filtre par fourchette de prix, pagination / défilement infini, gestion des états (chargement squelette/spinner, catalogue vide avec CTA, bannières d'erreur avec rechargement).
-  - **Écran Fiche Produit (`mobile/app/product/[id].tsx`) :** Affichage galerie photos, titre, badges de catégorie, prix en Dirhams (DH), description complète, sélecteurs interactifs de tailles/variantes, indicateur de stock en temps réel, et bouton d'action directe pour passer commande.
+  - **Écran Fiche Produit (`mobile/app/product/[id].tsx`) :** Affichage de l'image du produit, titre, badges de catégorie, prix en Dirhams (DH), description complète, sélecteurs interactifs de tailles/variantes, indicateur de stock en temps réel, et bouton d'action directe pour passer commande.
 - **Navigation Mobile & Système de Design (`stitch_shopmate`) :**
   - **Layout à 4 onglets Expo Router :** Navigation fluide et réactive entre **Boutique** (`index`), **Assistant IA** (`chat`), **Commandes** (`orders`), et **Profil** (`profile`), suivant fidèlement les maquettes Figma et le design system.
   - **Tokens de thème & Design System :** Palette complète extraite de `stitch_shopmate/shopmate_ai/DESIGN.md` (terracotta primaire `#9c3e23`, or COD `#F5A623`, surfaces douces `#fff8f6`, typographies Lexend, rayons et espacements).
@@ -161,7 +161,7 @@ ShopMate AI automatise **les deux tâches à la fois** :
 ### Pour le client
 - 🔐 Inscription, connexion, session sécurisée (JWT + refresh rotatif)
 - 🛒 Catalogue produits avec recherche, filtres et fiche détaillée
-- 💬 **Chat avec l'assistant IA**, réponse affichée mot par mot (streaming SSE)
+- 💬 **Chat avec l'assistant IA** via SSE, avec activité de l'agent en direct et réponse envoyée après modération
 - 📦 Passer une commande COD **directement dans la conversation**
 - 🚚 Suivre l'état de sa commande et sa livraison
 - 🗂️ Historique des conversations conservé
@@ -213,7 +213,7 @@ sequenceDiagram
     LLM-->>API: appel d'outil (ex. checkStock / createOrder)
     API->>DB: exécution (transaction si écriture)
     API->>MCP: (si besoin) getShipmentStatus
-    API-->>U: réponse streamée token par token
+    API-->>U: événements SSE puis réponse finale après modération
     API->>DB: log d'audit (question, outils, sources)
 ```
 
@@ -458,7 +458,7 @@ Après les migrations, et après avoir défini `SEED_ADMIN_PASSWORD` dans `.env`
 npm run seed
 ```
 
-Le seed peut être relancé sans dupliquer les enregistrements. Il crée la boutique `ShopMate Demo Store`, l'admin `admin@shopmate-demo.local` avec un mot de passe hashé par bcrypt, 4 catégories, 15 produits avec prix et stock, et 4 documents d'exemple avec leurs chunks texte. Le mot de passe n'est jamais affiché dans la console.
+Le seed peut être relancé sans dupliquer les enregistrements. Il crée la boutique `ShopMate Demo Store`, l'admin `admin@shopmate-demo.local` avec un mot de passe hashé par bcrypt, 4 catégories, 15 produits avec prix, stock et images d'exemple, et 4 documents d'exemple avec leurs chunks texte. Le mot de passe n'est jamais affiché dans la console.
 
 Les documents sont créés au statut `pending` et leurs chunks ont `embedding = null` : le seed fournit le contenu de démonstration, mais ne génère pas d'embeddings. La recherche vectorielle ne trouvera pas ces documents avant l'exécution du pipeline d'embedding.
 
@@ -507,7 +507,7 @@ npm install
 npx expo start --lan
 ```
 
-Scanne le QR code avec **Expo Go**. Dans `mobile/.env`, `EXPO_PUBLIC_API_URL` vaut `http://localhost:4000` par défaut. Sur un téléphone physique, remplace `localhost` par l'adresse IPv4 locale de ton ordinateur, par exemple `http://192.168.1.10:4000`; le téléphone et l'ordinateur doivent être sur le même réseau. `localhost` convient à un émulateur qui partage le réseau de développement, pas à un téléphone physique.
+Scanne le QR code avec **Expo Go**. Dans `mobile/.env`, `EXPO_PUBLIC_API_URL` vaut `http://localhost:4000` par défaut pour le web et le simulateur iOS. L'émulateur Android utilise `http://10.0.2.2:4000`. Sur un téléphone physique, utilise l'adresse IPv4 locale de l'ordinateur, par exemple `http://192.168.1.10:4000`; le téléphone et l'ordinateur doivent être sur le même réseau.
 
 Le thème mobile et les composants partagés respectent fidèlement la charte graphique et les maquettes Figma documentées dans `stitch_shopmate/` (couleur primaire terracotta `#9c3e23`, badges dorés COD `#F5A623`, surfaces chaleureuses `#fff8f6`, et typographie Lexend).
 
@@ -555,11 +555,11 @@ Le thème mobile et les composants partagés respectent fidèlement la charte gr
 ### Produits & Catalogue
 | Méthode | Route | Description | Accès |
 |---|---|---|---|
-| `GET` | `/api/products` | Recherche plein texte (`iLike`), filtres (catégorie, prix), pagination | Public démo / 🔒 |
-| `GET` | `/api/products/:id` | Fiche détaillée d'un produit avec catégorie associée | Public démo / 🔒 |
+| `GET` | `/api/products` | Recherche plein texte (`iLike`), filtres (catégorie, prix), pagination; retourne `imageUrl` si défini | Public démo / 🔒 |
+| `GET` | `/api/products/:id` | Fiche détaillée d'un produit avec catégorie associée et `imageUrl` | Public démo / 🔒 |
 | `GET` | `/api/products/:id/stock` | Stock et prix en temps réel (données directes BDD sans hallucination) | Public démo / 🔒 |
-| `POST` | `/api/products` | Création de produit (SKU unique, validation Zod) | 👑 Admin |
-| `PUT` | `/api/products/:id` | Mise à jour de produit (scopé par `storeId`) | 👑 Admin |
+| `POST` | `/api/products` | Création de produit (SKU unique, validation Zod, `imageUrl` HTTPS optionnel) | 👑 Admin |
+| `PUT` | `/api/products/:id` | Mise à jour de produit (scopé par `storeId`, `imageUrl` optionnel) | 👑 Admin |
 | `DELETE` | `/api/products/:id` | Suppression de produit | 👑 Admin |
 
 ### Catégories
@@ -576,8 +576,8 @@ Le thème mobile et les composants partagés respectent fidèlement la charte gr
 |---|---|---|---|
 | `GET` | `/api/orders` | Historique des commandes du client connecté | 🔒 Client |
 | `GET` | `/api/orders/:id` | Détail d'une commande avec lignes et articles | 🔒 Client |
-| `POST` | `/api/orders` | Passer une commande COD (transaction ACID + décrémentation stock) | 🔒 Client |
-| `POST` | `/api/orders/:id/cancel` | Annuler une commande en cours | 🔒 Client |
+| `POST` | `/api/orders` | Passer une commande COD après confirmation explicite (`confirmed: true`, transaction ACID + décrémentation stock) | 🔒 Client |
+| `POST` | `/api/orders/:id/cancel` | Annuler une commande après confirmation explicite (`confirmed: true`, transaction + restitution stock) | 🔒 Client |
 
 ### Documentation & Diagnostic
 | Méthode | Route | Description | Accès |
