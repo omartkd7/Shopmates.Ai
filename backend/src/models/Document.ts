@@ -12,6 +12,7 @@ interface DocumentData {
   fileUrl: string;
   mimeType: string;
   status: DocumentStatus;
+  errorMessage?: string | null;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -30,6 +31,7 @@ class Document extends Model<
   declare fileUrl: string;
   declare mimeType: string;
   declare status: DocumentStatus;
+  declare errorMessage: string | null;
   declare readonly createdAt: Date;
   declare readonly updatedAt: Date;
 }
@@ -70,6 +72,10 @@ Document.init(
       ),
       allowNull: false,
       defaultValue: "pending",
+    },
+    errorMessage: {
+      type: DataTypes.STRING,
+      allowNull: true,
     },
   },
   {

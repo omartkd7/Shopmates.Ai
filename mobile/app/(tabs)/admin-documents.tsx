@@ -21,6 +21,7 @@ type RagDocument = {
   name: string;
   mimeType: string;
   status: "pending" | "processing" | "completed" | "failed";
+  errorMessage?: string | null;
   chunksCreated: number;
   createdAt: string;
 };
@@ -152,7 +153,7 @@ export default function AdminDocumentsScreen() {
               </View>
             </View>
             <Text style={styles.documentMeta}>{document.chunksCreated} chunk(s) · {document.mimeType}</Text>
-            {document.status === "failed" ? <Text style={styles.failedHint}>Indexation échouée. Supprimez-le et réessayez l’envoi.</Text> : null}
+            {document.status === "failed" ? <Text style={styles.failedHint}>{document.errorMessage || "Indexation échouée. Supprimez-le et réessayez l’envoi."}</Text> : null}
             <Pressable accessibilityRole="button" onPress={() => deleteDocument(document)} style={styles.deleteButton}>
               <Text style={styles.deleteLabel}>Supprimer le document</Text>
             </Pressable>

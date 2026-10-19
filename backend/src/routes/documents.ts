@@ -42,7 +42,7 @@ documentsRouter.get(
       const storeId = req.storeId as number;
       const documents = await forStore(Document, storeId).findAll({
         order: [["createdAt", "DESC"]],
-        attributes: ["id", "name", "mimeType", "status", "createdAt", "updatedAt"],
+        attributes: ["id", "name", "mimeType", "status", "errorMessage", "createdAt", "updatedAt"],
       });
       const chunkCounts = documents.length
         ? ((await Chunk.findAll({
@@ -172,7 +172,7 @@ documentsRouter.post(
       );
 
       // 5. Mark document as completed
-      await document.update({ status: "completed" }, { transaction });
+      await document.update({ status: "completed", errorMessage: null }, { transaction });
 
       await transaction.commit();
 
@@ -188,9 +188,24 @@ documentsRouter.post(
     } catch (err) {
       await transaction.rollback();
 
-      // If embedding API fails, mark document as failed (best-effort)
-      // Document may not exist if rollback removed it, so we ignore errors here
-      next(err);
+      // The transaction removes the in-progress document. Keep a separate,
+      // safe failure record so the admin can see why this upload did not index.
+      try {
+        await Document.create({
+          storeId,
+          uploadedBy: userId,
+          name,
+          fileUrl: `upload:${Date.now()}-${req.file.originalname}`,
+          mimeType: req.file.mimetype || "text/plain",
+          status: "failed",
+          errorMessage: "L’indexation a échoué. Vérifiez la configuration d’embeddings puis réessayez.",
+        });
+      } catch {
+        console.error("Could not record document ingestion failure.");
+      }
+      return res.status(502).json({
+        error: "L’indexation du document a échoué. Réessayez dans quelques instants.",
+      });
     }
   }
 );
@@ -258,6 +273,7 @@ documentsRouter.put(
           fileUrl: `upload:${Date.now()}-${req.file!.originalname}`,
           mimeType: req.file!.mimetype || "text/plain",
           status: "completed",
+          errorMessage: null,
         },
         { transaction }
       );
