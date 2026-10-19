@@ -19,20 +19,20 @@ const categoryDefinitions = [
 
 const productDefinitions = [
   { sku: "DEMO-TSHIRT-001", category: "Clothing", name: "Classic cotton T-shirt", description: "Soft cotton T-shirt in several sizes.", imageUrl: "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=900&q=85", price: 129, stock: 24 },
-  { sku: "DEMO-TSHIRT-002", category: "Clothing", name: "Long-sleeve T-shirt", description: "Light long-sleeve top for everyday wear.", price: 159, stock: 18 },
-  { sku: "DEMO-SHIRT-001", category: "Clothing", name: "Oxford shirt", description: "Button-up shirt with a regular fit.", price: 249, stock: 12 },
-  { sku: "DEMO-HOODIE-001", category: "Clothing", name: "Everyday hoodie", description: "Warm pullover hoodie with a front pocket.", price: 329, stock: 10 },
-  { sku: "DEMO-JEANS-001", category: "Clothing", name: "Straight-fit jeans", description: "Classic denim with a straight fit.", price: 299, stock: 14 },
-  { sku: "DEMO-DRESS-001", category: "Clothing", name: "Casual dress", description: "Comfortable knee-length dress.", price: 279, stock: 9 },
-  { sku: "DEMO-SNEAKER-001", category: "Shoes", name: "Daily sneakers", description: "Lightweight sneakers for everyday use.", price: 399, stock: 11 },
-  { sku: "DEMO-SNEAKER-002", category: "Shoes", name: "Running sneakers", description: "Cushioned shoes for light running.", price: 549, stock: 8 },
-  { sku: "DEMO-SANDAL-001", category: "Shoes", name: "Comfort sandals", description: "Adjustable sandals with a cushioned footbed.", price: 229, stock: 16 },
-  { sku: "DEMO-BELT-001", category: "Accessories", name: "Classic belt", description: "Adjustable everyday belt.", price: 119, stock: 20 },
-  { sku: "DEMO-BAG-001", category: "Accessories", name: "Canvas tote bag", description: "Reusable canvas bag with reinforced handles.", price: 89, stock: 30 },
-  { sku: "DEMO-WALLET-001", category: "Accessories", name: "Compact wallet", description: "Small wallet with card slots and a coin pocket.", price: 139, stock: 13 },
-  { sku: "DEMO-BOTTLE-001", category: "Home", name: "Insulated water bottle", description: "Reusable bottle for hot and cold drinks.", price: 169, stock: 17 },
-  { sku: "DEMO-LAMP-001", category: "Home", name: "Desk lamp", description: "Compact LED lamp with adjustable angle.", price: 219, stock: 7 },
-  { sku: "DEMO-PILLOW-001", category: "Home", name: "Cotton cushion cover", description: "Soft removable cover for a standard cushion.", price: 99, stock: 22 },
+  { sku: "DEMO-TSHIRT-002", category: "Clothing", name: "Long-sleeve T-shirt", description: "Light long-sleeve top for everyday wear.", imageUrl: "https://images.unsplash.com/photo-1618354691373-d851c5c3a990?auto=format&fit=crop&w=900&q=85", price: 159, stock: 18 },
+  { sku: "DEMO-SHIRT-001", category: "Clothing", name: "Oxford shirt", description: "Button-up shirt with a regular fit.", imageUrl: "https://images.unsplash.com/photo-1596755094514-f87e34085b2c?auto=format&fit=crop&w=900&q=85", price: 249, stock: 12 },
+  { sku: "DEMO-HOODIE-001", category: "Clothing", name: "Everyday hoodie", description: "Warm pullover hoodie with a front pocket.", imageUrl: "https://images.unsplash.com/photo-1556821840-3a63f95609a7?auto=format&fit=crop&w=900&q=85", price: 329, stock: 10 },
+  { sku: "DEMO-JEANS-001", category: "Clothing", name: "Straight-fit jeans", description: "Classic denim with a straight fit.", imageUrl: "https://images.unsplash.com/photo-1542272604-787c3835535d?auto=format&fit=crop&w=900&q=85", price: 299, stock: 14 },
+  { sku: "DEMO-DRESS-001", category: "Clothing", name: "Casual dress", description: "Comfortable knee-length dress.", imageUrl: "https://images.unsplash.com/photo-1595777457583-95e059d581b8?auto=format&fit=crop&w=900&q=85", price: 279, stock: 9 },
+  { sku: "DEMO-SNEAKER-001", category: "Shoes", name: "Daily sneakers", description: "Lightweight sneakers for everyday use.", imageUrl: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=900&q=85", price: 399, stock: 11 },
+  { sku: "DEMO-SNEAKER-002", category: "Shoes", name: "Running sneakers", description: "Cushioned shoes for light running.", imageUrl: "https://images.unsplash.com/photo-1460353581641-37baddab0fa2?auto=format&fit=crop&w=900&q=85", price: 549, stock: 8 },
+  { sku: "DEMO-SANDAL-001", category: "Shoes", name: "Comfort sandals", description: "Adjustable sandals with a cushioned footbed.", imageUrl: "https://images.unsplash.com/photo-1603487742131-4160ec999306?auto=format&fit=crop&w=900&q=85", price: 229, stock: 16 },
+  { sku: "DEMO-BELT-001", category: "Accessories", name: "Classic belt", description: "Adjustable everyday belt.", imageUrl: "https://images.unsplash.com/photo-1627123424574-724758594e93?auto=format&fit=crop&w=900&q=85", price: 119, stock: 20 },
+  { sku: "DEMO-BAG-001", category: "Accessories", name: "Canvas tote bag", description: "Reusable canvas bag with reinforced handles.", imageUrl: "https://images.unsplash.com/photo-1548036328-c9fa89d128fa?auto=format&fit=crop&w=900&q=85", price: 89, stock: 30 },
+  { sku: "DEMO-WALLET-001", category: "Accessories", name: "Compact wallet", description: "Small wallet with card slots and a coin pocket.", imageUrl: "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&w=900&q=85", price: 139, stock: 13 },
+  { sku: "DEMO-BOTTLE-001", category: "Home", name: "Insulated water bottle", description: "Reusable bottle for hot and cold drinks.", imageUrl: "https://images.unsplash.com/photo-1602143407151-7111542de6e8?auto=format&fit=crop&w=900&q=85", price: 169, stock: 17 },
+  { sku: "DEMO-LAMP-001", category: "Home", name: "Desk lamp", description: "Compact LED lamp with adjustable angle.", imageUrl: "https://images.unsplash.com/photo-1507473885765-e6ed057f782c?auto=format&fit=crop&w=900&q=85", price: 219, stock: 7 },
+  { sku: "DEMO-PILLOW-001", category: "Home", name: "Cotton cushion cover", description: "Soft removable cover for a standard cushion.", imageUrl: "https://images.unsplash.com/photo-1584100936595-c0654b55a2e2?auto=format&fit=crop&w=900&q=85", price: 99, stock: 22 },
 ];
 
 const knowledgeDocuments = [
@@ -136,6 +136,25 @@ async function seed(): Promise<void> {
       if (definition.imageUrl && !product.imageUrl) {
         await product.update({ imageUrl: definition.imageUrl }, { transaction });
       }
+    }
+
+    const fallbackProductImages = [
+      "https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=900&q=85",
+      "https://images.unsplash.com/photo-1572635196237-14b3f281503f?auto=format&fit=crop&w=900&q=85",
+      "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=900&q=85",
+      "https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?auto=format&fit=crop&w=900&q=85",
+    ];
+    const productsWithoutImages = await Product.findAll({
+      where: { storeId: store.id, imageUrl: null },
+      order: [["id", "ASC"]],
+      transaction,
+    });
+
+    for (const [index, product] of productsWithoutImages.entries()) {
+      await product.update(
+        { imageUrl: fallbackProductImages[index % fallbackProductImages.length] },
+        { transaction }
+      );
     }
 
     for (const definition of knowledgeDocuments) {
