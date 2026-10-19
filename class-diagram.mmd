@@ -1,0 +1,306 @@
+classDiagram
+    direction LR
+
+    class Store {
+        <<model>>
+        +id: number
+        +name: string
+    }
+    class User {
+        <<model>>
+        +id: number
+        +storeId: number
+        +name: string
+        +email: string
+        +password: string
+        +role: ADMIN | CUSTOMER
+    }
+    class RefreshToken {
+        <<model>>
+        +id: number
+        +storeId: number
+        +userId: number
+        +token: string
+        +expiresAt: Date
+    }
+    class Category {
+        <<model>>
+        +id: number
+        +storeId: number
+        +name: string
+        +description: string
+    }
+    class Product {
+        <<model>>
+        +id: number
+        +storeId: number
+        +categoryId: number
+        +name: string
+        +description: string
+        +imageUrl: string
+        +price: decimal
+        +stock: number
+        +sku: string
+    }
+    class Customer {
+        <<model>>
+        +id: number
+        +storeId: number
+        +name: string
+        +email: string
+        +phone: string
+    }
+    class Order {
+        <<model>>
+        +id: number
+        +storeId: number
+        +customerId: number
+        +status: OrderStatus
+        +total: decimal
+    }
+    class OrderItem {
+        <<model>>
+        +id: number
+        +storeId: number
+        +orderId: number
+        +customerId: number
+        +productId: number
+        +quantity: number
+        +unitPrice: decimal
+    }
+    class Conversation {
+        <<model>>
+        +id: number
+        +storeId: number
+        +userId: number
+        +title: string
+        +status: active | archived
+    }
+    class Message {
+        <<model>>
+        +id: number
+        +storeId: number
+        +conversationId: number
+        +role: user | assistant | system
+        +content: string
+    }
+    class Document {
+        <<model>>
+        +id: number
+        +storeId: number
+        +uploadedBy: number
+        +name: string
+        +fileUrl: string
+        +mimeType: string
+        +status: DocumentStatus
+        +errorMessage: string
+    }
+    class Chunk {
+        <<model>>
+        +id: number
+        +storeId: number
+        +documentId: number
+        +content: string
+        +embedding: vector1536
+    }
+    class AgentLog {
+        <<model>>
+        +id: number
+        +storeId: number
+        +conversationId: number
+        +messageId: number
+        +agentName: string
+        +action: string
+        +status: success | error
+        +toolsCalled: JSONB
+        +ragSources: JSONB
+        +tokenUsage: JSONB
+        +latencyMs: number
+        +refusalCategory: string
+    }
+
+    Store "1" --> "0..1" User : owner
+    Store "1" --> "0..*" User : users
+    Store "1" --> "0..*" RefreshToken : refreshTokens
+    User "1" --> "0..*" RefreshToken : userRefreshTokens
+    Store "1" --> "0..*" Category : categories
+    Store "1" --> "0..*" Product : products
+    Category "1" --> "0..*" Product : products
+    Store "1" --> "0..*" Customer : customers
+    Store "1" --> "0..*" Order : orders
+    Customer "1" --> "0..*" Order : orders
+    Order "1" *-- "0..*" OrderItem : items
+    Product "1" --> "0..*" OrderItem : orderItems
+    Customer "1" --> "0..*" OrderItem : purchasedItems
+    Store "1" --> "0..*" OrderItem : orderItems
+    Store "1" --> "0..*" Conversation : conversations
+    User "1" --> "0..*" Conversation : conversations
+    Conversation "1" *-- "0..*" Message : messages
+    Store "1" --> "0..*" Message : messages
+    Store "1" --> "0..*" Document : documents
+    User "1" --> "0..*" Document : uploadedDocuments
+    Document "1" *-- "0..*" Chunk : chunks
+    Store "1" --> "0..*" Chunk : chunks
+    Store "1" --> "0..*" AgentLog : agentLogs
+
+    class AuthRoutes {
+        <<route>>
+        +register()
+        +login()
+        +refresh()
+        +logout()
+    }
+    class ProductRoutes {
+        <<route>>
+        +listProducts()
+        +getProduct()
+        +createProduct()
+        +updateProduct()
+    }
+    class CategoryRoutes {
+        <<route>>
+        +listCategories()
+        +manageCategories()
+    }
+    class OrderRoutes {
+        <<route>>
+        +createOrder()
+        +cancelOrder()
+        +getOrders()
+    }
+    class DocumentRoutes {
+        <<route>>
+        +uploadDocument()
+        +reingestDocument()
+        +searchDocuments()
+    }
+    class AgentRoutes {
+        <<route>>
+        +chat()
+        +getConversations()
+        +getAgentLogs()
+    }
+    class AuthMiddleware {
+        <<middleware>>
+        +authenticate()
+        +injectTenant()
+        +requireRole()
+    }
+    class AgentTools {
+        <<service>>
+        +validateToolCall()
+        +executeToolCall()
+    }
+    class OrderConfirmation {
+        <<service>>
+        +prepareWrite()
+        +executeConfirmedAction()
+    }
+    class RagService {
+        <<service>>
+        +chunkText()
+        +embedChunks()
+        +retrieveContext()
+    }
+    class LlmClient {
+        <<service>>
+        +streamChat()
+        +chat()
+    }
+    class Guardrails {
+        <<service>>
+        +checkPromptInjection()
+        +checkProhibitedIntent()
+        +moderateAgentOutput()
+    }
+    class McpShipmentClient {
+        <<service>>
+        +getShipmentStatus()
+    }
+    class ShipmentMcpServer {
+        <<MCP server>>
+        +getShipmentStatus()
+    }
+    class N8nNotifications {
+        <<service>>
+        +notifyOrderCreated()
+        +notifyManagerRequest()
+    }
+
+    AuthRoutes ..> AuthMiddleware : protects profile routes
+    ProductRoutes ..> AuthMiddleware : protects admin writes
+    CategoryRoutes ..> AuthMiddleware : protects admin writes
+    OrderRoutes ..> AuthMiddleware : authenticates and scopes
+    DocumentRoutes ..> AuthMiddleware : admin access
+    AgentRoutes ..> AuthMiddleware : authenticates and scopes
+    AuthRoutes ..> User : accounts
+    AuthRoutes ..> RefreshToken : rotation
+    ProductRoutes ..> Product : catalog CRUD
+    CategoryRoutes ..> Category : category CRUD
+    OrderRoutes ..> Order : transactional writes
+    OrderRoutes ..> N8nNotifications : best-effort events
+    DocumentRoutes ..> RagService : ingestion and search
+    AgentRoutes ..> RagService : retrieve knowledge
+    AgentRoutes ..> LlmClient : completions
+    AgentRoutes ..> AgentTools : tool loop
+    AgentRoutes ..> Guardrails : input and output checks
+    AgentRoutes ..> OrderConfirmation : confirmed writes
+    AgentRoutes ..> AgentLog : audit trail
+    AgentTools ..> OrderConfirmation : create or cancel
+    AgentTools ..> McpShipmentClient : shipment lookup
+    OrderConfirmation ..> N8nNotifications : order-created event
+    McpShipmentClient ..> ShipmentMcpServer : MCP transport
+
+    class MobileApiClient {
+        <<mobile client>>
+        +request()
+        +refreshTokens()
+    }
+    class MobileAuthStore {
+        <<Zustand store>>
+        +login()
+        +register()
+        +logout()
+    }
+    class MobileCatalogStore {
+        <<Zustand store>>
+        +fetchProducts()
+        +fetchProductDetails()
+    }
+    class MobileTokenStorage {
+        <<SecureStore>>
+        +saveTokens()
+        +getTokens()
+        +clearTokens()
+    }
+    class AgentChatClient {
+        <<SSE client>>
+        +streamAgentChat()
+        +fetchConversationHistory()
+    }
+    class AuthScreens {
+        <<Expo Router screens>>
+    }
+    class CatalogScreens {
+        <<Expo Router screens>>
+    }
+    class ChatScreen {
+        <<Expo Router screen>>
+    }
+    class OrdersScreen {
+        <<Expo Router screen>>
+    }
+
+    AuthScreens ..> MobileAuthStore : login and registration
+    MobileAuthStore ..> MobileApiClient : REST
+    MobileAuthStore ..> MobileTokenStorage : persist session
+    CatalogScreens ..> MobileCatalogStore : browse products
+    MobileCatalogStore ..> MobileApiClient : REST
+    ChatScreen ..> AgentChatClient : stream chat
+    AgentChatClient ..> MobileTokenStorage : access token
+    AgentChatClient ..> AgentRoutes : SSE and history
+    OrdersScreen ..> MobileApiClient : orders and confirmation
+    MobileApiClient ..> AuthRoutes : auth requests
+    MobileApiClient ..> ProductRoutes : product requests
+    MobileApiClient ..> CategoryRoutes : category requests
+    MobileApiClient ..> OrderRoutes : order requests
