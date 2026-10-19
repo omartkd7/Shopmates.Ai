@@ -4,7 +4,7 @@
     "slug": "shopmate-ai",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/shopmate-app-icon.png",
     "scheme": "shopmate",
     "userInterfaceStyle": "automatic",
     "ios": {

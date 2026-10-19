@@ -34,6 +34,7 @@ export default function ProductDetailScreen() {
   const [product, setProduct] = useState<Product | null>(null);
   const [liveStock, setLiveStock] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [imageFailed, setImageFailed] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const [selectedSize, setSelectedSize] = useState<string>("M");
@@ -194,9 +195,18 @@ export default function ProductDetailScreen() {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Product Artwork / Image Banner */}
         <View style={styles.artworkContainer}>
-          <View style={styles.artworkPattern}>
-            <Text style={styles.artworkInitial}>{product.name.charAt(0)}</Text>
-          </View>
+          {product.imageUrl && !imageFailed ? (
+            <Image
+              source={{ uri: product.imageUrl }}
+              style={StyleSheet.absoluteFill}
+              resizeMode="cover"
+              onError={() => setImageFailed(true)}
+            />
+          ) : (
+            <View style={styles.artworkPattern}>
+              <Text style={styles.artworkInitial}>{product.name.charAt(0)}</Text>
+            </View>
+          )}
           <View style={styles.categoryPill}>
             <Text style={styles.categoryPillText}>
               {product.category?.name || "Boutique ShopMate"}

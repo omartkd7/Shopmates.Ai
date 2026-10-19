@@ -12,6 +12,7 @@ export interface Product {
   storeId?: number;
   name: string;
   description?: string;
+  imageUrl?: string | null;
   price: number;
   stock: number;
   sku?: string;

@@ -18,7 +18,7 @@ const categoryDefinitions = [
 ];
 
 const productDefinitions = [
-  { sku: "DEMO-TSHIRT-001", category: "Clothing", name: "Classic cotton T-shirt", description: "Soft cotton T-shirt in several sizes.", price: 129, stock: 24 },
+  { sku: "DEMO-TSHIRT-001", category: "Clothing", name: "Classic cotton T-shirt", description: "Soft cotton T-shirt in several sizes.", imageUrl: "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=900&q=85", price: 129, stock: 24 },
   { sku: "DEMO-TSHIRT-002", category: "Clothing", name: "Long-sleeve T-shirt", description: "Light long-sleeve top for everyday wear.", price: 159, stock: 18 },
   { sku: "DEMO-SHIRT-001", category: "Clothing", name: "Oxford shirt", description: "Button-up shirt with a regular fit.", price: 249, stock: 12 },
   { sku: "DEMO-HOODIE-001", category: "Clothing", name: "Everyday hoodie", description: "Warm pullover hoodie with a front pocket.", price: 329, stock: 10 },
@@ -119,7 +119,7 @@ async function seed(): Promise<void> {
         throw new Error(`Missing seeded category: ${definition.category}`);
       }
 
-      await Product.findOrCreate({
+      const [product] = await Product.findOrCreate({
         where: { storeId: store.id, sku: definition.sku },
         defaults: {
           storeId: store.id,
@@ -132,6 +132,10 @@ async function seed(): Promise<void> {
         },
         transaction,
       });
+
+      if (definition.imageUrl && !product.imageUrl) {
+        await product.update({ imageUrl: definition.imageUrl }, { transaction });
+      }
     }
 
     for (const definition of knowledgeDocuments) {

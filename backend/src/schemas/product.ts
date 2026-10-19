@@ -21,6 +21,13 @@ export const createProductSchema = z.object({
     .min(1, "Product name is required")
     .max(255, "Product name is too long"),
   description: z.string().trim().optional().nullable(),
+  imageUrl: z
+    .string()
+    .trim()
+    .url()
+    .refine((value) => value.startsWith("https://"), "Image URL must use HTTPS")
+    .optional()
+    .nullable(),
   price: z.coerce
     .number()
     .positive("Price must be greater than zero"),

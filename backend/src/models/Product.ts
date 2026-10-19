@@ -10,6 +10,7 @@ interface ProductData {
   categoryId: number | null;
   name: string;
   description?: string | null;
+  imageUrl?: string | null;
   price: number | string;
   sku?: string | null;
   stock: number;
@@ -24,6 +25,7 @@ class Product extends Model<ProductData, Optional<ProductData, "id">> {
   declare categoryId: number | null;
   declare name: string;
   declare description: string | null;
+  declare imageUrl: string | null;
   declare price: number | string;
   declare sku: string | null;
   declare stock: number;
@@ -53,6 +55,10 @@ Product.init(
     },
     description: {
       type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    imageUrl: {
+      type: DataTypes.STRING(2048),
       allowNull: true,
     },
     price: {

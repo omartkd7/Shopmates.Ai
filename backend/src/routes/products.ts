@@ -181,7 +181,7 @@ productsRouter.post(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const storeId = req.storeId as number;
-      const { name, description, price, stock, sku, categoryId } = req.body;
+      const { name, description, imageUrl, price, stock, sku, categoryId } = req.body;
 
       // Verify category belongs to this store if provided
       if (categoryId) {
@@ -204,6 +204,7 @@ productsRouter.post(
       const product = await Product.create({
         name,
         description: description || null,
+        imageUrl: imageUrl || null,
         price,
         stock: stock ?? 0,
         sku: sku || null,
@@ -271,6 +272,7 @@ productsRouter.put(
         ...(req.body.description !== undefined
           ? { description: req.body.description }
           : {}),
+        ...(req.body.imageUrl !== undefined ? { imageUrl: req.body.imageUrl } : {}),
         ...(req.body.price !== undefined ? { price: req.body.price } : {}),
         ...(req.body.stock !== undefined ? { stock: req.body.stock } : {}),
         ...(req.body.sku !== undefined ? { sku: req.body.sku } : {}),

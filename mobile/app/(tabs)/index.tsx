@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import {
   ActivityIndicator,
   FlatList,
+  Image,
   Pressable,
   RefreshControl,
   StyleSheet,
@@ -271,6 +272,7 @@ function ProductCard({
   onPress: () => void;
 }) {
   const isOutOfStock = product.stock <= 0;
+  const [imageFailed, setImageFailed] = useState(false);
 
   return (
     <Pressable
@@ -278,8 +280,17 @@ function ProductCard({
       onPress={onPress}
     >
       <View style={styles.productArtwork}>
+        {product.imageUrl && !imageFailed ? (
+          <Image
+            source={{ uri: product.imageUrl }}
+            style={StyleSheet.absoluteFill}
+            resizeMode="cover"
+            onError={() => setImageFailed(true)}
+          />
+        ) : (
+          <Text style={styles.productArtworkMark}>{product.name.charAt(0)}</Text>
+        )}
         <View style={styles.codBadge}><Text style={styles.codBadgeText}>✦ COD</Text></View>
-        <Text style={styles.productArtworkMark}>{product.name.charAt(0)}</Text>
       </View>
 
       <Text numberOfLines={2} style={styles.productName}>
