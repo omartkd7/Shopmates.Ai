@@ -695,8 +695,8 @@ Le webhook reçoit `order.created` avec la commande, le client et les articles, 
 
 | Document | Contenu |
 |---|---|
-| `docs/cahier-des-charges.pdf` | Périmètre, 38 besoins fonctionnels, 18 non fonctionnels, critères d'acceptation |
-| `docs/conception-uml.md` | Cas d'utilisation, diagramme de classes, séquence, ERD |
+| `docs/cahier-des-charges.pdf` *(à finaliser)* | Périmètre, 38 besoins fonctionnels, 18 non fonctionnels, critères d'acceptation |
+| `docs/conception-uml.md` *(à finaliser)* | Cas d'utilisation, diagramme de classes, séquence, ERD |
 | `docs/journal-de-prompts.md` | Vibe coding documenté — livrable évalué (sessions, bugs, décisions) |
 | `docs/demo-script.md` | Déroulé de démo, plan B et checklist de répétition |
 | `docs/clean-clone-verification.md` | Procédure reproductible à exécuter et consigner depuis un clone propre |
