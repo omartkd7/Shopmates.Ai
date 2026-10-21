@@ -1,0 +1,746 @@
+[
+  {
+    "path": ".github/workflows/backend-tests.yml",
+    "lines": 27,
+    "sha256": "e0cfaafc9067df9ce975b512773bd77bb7ca51a845c7e924119922bc1e19a141",
+    "explanation": "npm run كيشغل الأمر المسجل تحت scripts، وماشي جميع أسماء scripts اختبارات."
+  },
+  {
+    "path": "backend/docker-compose.yml",
+    "lines": 44,
+    "sha256": "18a00a974b2f90079b5a1cce833c659e35ffff4703b931a0d51537830866771f",
+    "explanation": "الصورة كتجمع التطبيق، وCompose كيربطه بقاعدة البيانات."
+  },
+  {
+    "path": "backend/docker-entrypoint.sh",
+    "lines": 21,
+    "sha256": "e66abd6caa38407c13d3f2778f8ce472106002234e2e4cfa91e537d5ff8870fd",
+    "explanation": "الصورة كتجمع التطبيق، وCompose كيربطه بقاعدة البيانات."
+  },
+  {
+    "path": "backend/Dockerfile",
+    "lines": 34,
+    "sha256": "11c2efbe03a12faebd88d86f340f6a449b1b7d25c08ea06c4935e8296f5a3c42",
+    "explanation": "الصورة كتجمع التطبيق، وCompose كيربطه بقاعدة البيانات."
+  },
+  {
+    "path": "backend/migrations/20261009112905-create-stores.js",
+    "lines": 34,
+    "sha256": "78fc1dc2ca3bef3e19b14017c459d4817938fdfbad41bbb51804ec75c4789824",
+    "explanation": "Migration create-stores: up كيطبق تغيير بنية القاعدة وdown كيرجعو. كتتقرا حسب ترتيب التاريخ فاسم الملف. كتخلق جدول stores مع الأعمدة والقيود المذكورة فالمقتطف."
+  },
+  {
+    "path": "backend/migrations/20261009113405-create-users.js",
+    "lines": 55,
+    "sha256": "c4df4e42963fedafecc98796dc7de773d67e1e16391d9b98693ef4e2e14e3096",
+    "explanation": "Migration create-users: up كيطبق تغيير بنية القاعدة وdown كيرجعو. كتتقرا حسب ترتيب التاريخ فاسم الملف. كتخلق جدول users مع الأعمدة والقيود المذكورة فالمقتطف."
+  },
+  {
+    "path": "backend/migrations/20261009113746-create-refresh-tokens.js",
+    "lines": 61,
+    "sha256": "ceb75a35f3be48b78101c6815533317873ee20e18e9ed5a6da82fe835446eb9a",
+    "explanation": "Migration create-refresh-tokens: up كيطبق تغيير بنية القاعدة وdown كيرجعو. كتتقرا حسب ترتيب التاريخ فاسم الملف. كتخلق جدول refresh-tokens مع الأعمدة والقيود المذكورة فالمقتطف."
+  },
+  {
+    "path": "backend/migrations/20261009113906-create-categories.js",
+    "lines": 54,
+    "sha256": "c5ea06af0260bf5020a3edc68a3875b5e27b6d0ecdb89a047096c49fb95aec3a",
+    "explanation": "Migration create-categories: up كيطبق تغيير بنية القاعدة وdown كيرجعو. كتتقرا حسب ترتيب التاريخ فاسم الملف. كتخلق جدول categories مع الأعمدة والقيود المذكورة فالمقتطف."
+  },
+  {
+    "path": "backend/migrations/20261009114031-create-products.js",
+    "lines": 81,
+    "sha256": "7cdfc20dadd523206f1b30108732c11e7f8dea8167313028755e22517184e06b",
+    "explanation": "Migration create-products: up كيطبق تغيير بنية القاعدة وdown كيرجعو. كتتقرا حسب ترتيب التاريخ فاسم الملف. كتخلق جدول products مع الأعمدة والقيود المذكورة فالمقتطف."
+  },
+  {
+    "path": "backend/migrations/20261009114124-create-customers.js",
+    "lines": 59,
+    "sha256": "18169aab6e3c454d771f3a281199bb6c566ac134bc03c96880a095e41c081a76",
+    "explanation": "Migration create-customers: up كيطبق تغيير بنية القاعدة وdown كيرجعو. كتتقرا حسب ترتيب التاريخ فاسم الملف. كتخلق جدول customers مع الأعمدة والقيود المذكورة فالمقتطف."
+  },
+  {
+    "path": "backend/migrations/20261009114217-create-orders.js",
+    "lines": 66,
+    "sha256": "f49d12d08a8485e7c557c2c0eb76cd45ec2957cd78f30d3091c70ffc009e6d12",
+    "explanation": "Migration create-orders: up كيطبق تغيير بنية القاعدة وdown كيرجعو. كتتقرا حسب ترتيب التاريخ فاسم الملف. كتخلق جدول orders مع الأعمدة والقيود المذكورة فالمقتطف."
+  },
+  {
+    "path": "backend/migrations/20261009114319-create-order-items.js",
+    "lines": 77,
+    "sha256": "37ad0cd8c5baa831d38bbfa67b4f9779ba1af350dc869f6f774a0a62fca6160e",
+    "explanation": "Migration create-order-items: up كيطبق تغيير بنية القاعدة وdown كيرجعو. كتتقرا حسب ترتيب التاريخ فاسم الملف. كتخلق جدول order-items مع الأعمدة والقيود المذكورة فالمقتطف."
+  },
+  {
+    "path": "backend/migrations/20261009114433-create-conversations.js",
+    "lines": 67,
+    "sha256": "3ac942f081531e7ec76782fff277f22073dfc1b3dcddeb2732c810324fe831c5",
+    "explanation": "Migration create-conversations: up كيطبق تغيير بنية القاعدة وdown كيرجعو. كتتقرا حسب ترتيب التاريخ فاسم الملف. كتخلق جدول conversations مع الأعمدة والقيود المذكورة فالمقتطف."
+  },
+  {
+    "path": "backend/migrations/20261009114614-create-messages.js",
+    "lines": 66,
+    "sha256": "0d91383feadd690b4500b5da8d93693ae771444d3a5537ca9953237ed7bf0ce6",
+    "explanation": "Migration create-messages: up كيطبق تغيير بنية القاعدة وdown كيرجعو. كتتقرا حسب ترتيب التاريخ فاسم الملف. كتخلق جدول messages مع الأعمدة والقيود المذكورة فالمقتطف."
+  },
+  {
+    "path": "backend/migrations/20261009114719-create-documents.js",
+    "lines": 77,
+    "sha256": "b12d27ba4b0b22233f5718df81a9cf33449ed4f7aebe302738b5e111839ece8e",
+    "explanation": "Migration create-documents: up كيطبق تغيير بنية القاعدة وdown كيرجعو. كتتقرا حسب ترتيب التاريخ فاسم الملف. كتخلق جدول documents مع الأعمدة والقيود المذكورة فالمقتطف."
+  },
+  {
+    "path": "backend/migrations/20261009114820-create-chunks.js",
+    "lines": 69,
+    "sha256": "d24134c46548d4af5da31b1b1719080e23c15d1d704a585741ba69ec08393d7e",
+    "explanation": "Migration create-chunks: up كيطبق تغيير بنية القاعدة وdown كيرجعو. كتتقرا حسب ترتيب التاريخ فاسم الملف. كتخلق جدول chunks مع الأعمدة والقيود المذكورة فالمقتطف."
+  },
+  {
+    "path": "backend/migrations/20261009114916-create-agent-logs.js",
+    "lines": 75,
+    "sha256": "cb27ac1fa61088bdbcc01e6f200dce4ba289461fc636eb75454514cc44b6794b",
+    "explanation": "Migration create-agent-logs: up كيطبق تغيير بنية القاعدة وdown كيرجعو. كتتقرا حسب ترتيب التاريخ فاسم الملف. كتخلق جدول agent-logs مع الأعمدة والقيود المذكورة فالمقتطف."
+  },
+  {
+    "path": "backend/migrations/20261011100000-align-model-constraints.js",
+    "lines": 74,
+    "sha256": "265769e408a1679f230d2a7056e472146f7e76a796fc5b326c21bae5d5fbe45f",
+    "explanation": "Migration align-model-constraints: up كيطبق تغيير بنية القاعدة وdown كيرجعو. كتتقرا حسب ترتيب التاريخ فاسم الملف. كتعدل uniqueness وربط OrderItem بCustomer/Order؛ migration اللي بعدها كتراجع قيد المستخدم الواحد لكل متجر."
+  },
+  {
+    "path": "backend/migrations/20261012130000-add-role-to-users.js",
+    "lines": 28,
+    "sha256": "582b56779a1710f16e53663b0c356cfefe9f6200ad50f9a3c22aebc918f88e20",
+    "explanation": "Migration add-role-to-users: up كيطبق تغيير بنية القاعدة وdown كيرجعو. كتتقرا حسب ترتيب التاريخ فاسم الملف. كتضيف role وكتحيد users_storeId_unique باش عدة حسابات يدخلو لنفس المتجر."
+  },
+  {
+    "path": "backend/migrations/20261017140000-add-agent-log-traces.js",
+    "lines": 60,
+    "sha256": "9cec051647e33d1e8cdcbd253ee34c9856126eb662a3dede3699a16b0ceac6cf",
+    "explanation": "Migration add-agent-log-traces: up كيطبق تغيير بنية القاعدة وdown كيرجعو. كتتقرا حسب ترتيب التاريخ فاسم الملف. كتضيف metadata ديال trace للاستهلاك والأدوات والمصادر والمدة."
+  },
+  {
+    "path": "backend/migrations/20261019090000-add-document-error-message.js",
+    "lines": 14,
+    "sha256": "583fe063e0a5d2668c1023db69eea7a463bbeedc1586ac5f70f1558bb787dcbc",
+    "explanation": "Migration add-document-error-message: up كيطبق تغيير بنية القاعدة وdown كيرجعو. كتتقرا حسب ترتيب التاريخ فاسم الملف. كتزيد errorMessage باش الإدارة تشوف فشل ingestion."
+  },
+  {
+    "path": "backend/migrations/20261019150000-add-image-url-to-products.js",
+    "lines": 14,
+    "sha256": "f4f929f4c8697d75266ec7d85ffdb0639db02f0cf420221f268c457973cede73",
+    "explanation": "Migration add-image-url-to-products: up كيطبق تغيير بنية القاعدة وdown كيرجعو. كتتقرا حسب ترتيب التاريخ فاسم الملف. كتزيد imageUrl اختياري للمنتوج."
+  },
+  {
+    "path": "backend/n8n/shopmate-manager-notifications.json",
+    "lines": 50,
+    "sha256": "50508cb11b29fac3906017662524ebfda3ade7665ced2a46c955025720b581ea",
+    "explanation": "إشعار المسؤول عملية خارجية اختيارية، منفصلة على نجاح معاملة الشراء."
+  },
+  {
+    "path": "backend/package.json",
+    "lines": 58,
+    "sha256": "b788176ddf32f3576afffccd6187a9d76254d30e45f918a46948268ba8cd05af",
+    "explanation": "npm run كيشغل الأمر المسجل تحت scripts، وماشي جميع أسماء scripts اختبارات."
+  },
+  {
+    "path": "backend/sql/001_init_pgvector.sql",
+    "lines": 8,
+    "sha256": "0a84c1648f010fc3cd1b0c821794bbf91fef5dc1af4041c5c5a2fbc6c011db4d",
+    "explanation": "البحث كيقارن تمثيل السؤال العددي بتمثيلات المقاطع داخل متجر واحد."
+  },
+  {
+    "path": "backend/src/app.ts",
+    "lines": 46,
+    "sha256": "deb672b260df4ea3bba3419284ecf43927340eac4a8f963e5b3dc412e836f20e",
+    "explanation": "هاد الملف كيبني تطبيق Express ويربط كل مجموعة URLs بالـrouter ديالها."
+  },
+  {
+    "path": "backend/src/config/cors.ts",
+    "lines": 29,
+    "sha256": "7ddc38d399e25596bf725235413eba8706a25590c1432c8c789bf8e78744a977",
+    "explanation": "كيقرأ origins المسموحين؛ الطلب بلا Origin مسموح لnative/curl. CORS ماشي بديل JWT."
+  },
+  {
+    "path": "backend/src/config/database.ts",
+    "lines": 20,
+    "sha256": "361d92ff05ed91b1c340f952837439dc8ae56d8af74d132ed4de658457c7be99",
+    "explanation": "كيخلق Sequelize PostgreSQL connection من DB_HOST/PORT/NAME/USER/PASSWORD. logging:false كيوقف طباعة SQL الاعتيادي."
+  },
+  {
+    "path": "backend/src/config/demo.ts",
+    "lines": 2,
+    "sha256": "c02e95db1709215260d25081a1b028f7613c45957fbbf5e6aa4701be8b670efc",
+    "explanation": "قيم تعريف متجر وحساب الديمو اللي كيستعملهم auth وseed؛ هادي اختيارات خادم، ماشي متجر يختارو العميل فbody."
+  },
+  {
+    "path": "backend/src/config/jwt.ts",
+    "lines": 35,
+    "sha256": "1e8e72f099e857c73ce0b5afbb0d84203574506fcd412924225b8228c137ae90",
+    "explanation": "Access token بطاقة موقعة للاستعمال مع الطلبات. Refresh token سر عشوائي لتجديد الجلسة."
+  },
+  {
+    "path": "backend/src/config/sequelize-cli.js",
+    "lines": 36,
+    "sha256": "538a2604db3580c3ac00ee349fcf384f4e18243105c100731c9bd9297c1fc39f",
+    "explanation": "إعداد خاص بSequelize CLI باش migrations تلقى نفس قاعدة البيانات حسب البيئة."
+  },
+  {
+    "path": "backend/src/docs/swagger.ts",
+    "lines": 904,
+    "sha256": "fcdeb3fa2b4d8e28f436353c7275b4b3210d339568ac15936c4c584eba174c97",
+    "explanation": "وصف OpenAPI وSwagger UI للمسارات والمدخلات والأجوبة. التوثيق ما كيشغلش قواعد البيع؛ خاص يوافق routes."
+  },
+  {
+    "path": "backend/src/mcp/shipmentServer.ts",
+    "lines": 78,
+    "sha256": "4f24b1b544317ee56fd00dcf022af153d5c6c3f3a34e7d47c20137d513302b4e",
+    "explanation": "getShipmentStatusTool كيتأكد من صاحب الطلب قبل التواصل مع خدمة التتبع."
+  },
+  {
+    "path": "backend/src/middlewares/auth.ts",
+    "lines": 27,
+    "sha256": "9d1ea0099550da662cb953c1b4b8fd99ec705a79009c433babe7dc9b99a3000e",
+    "explanation": "Middleware دالة كتدخل بين الطلب والتنفيذ. إما تكمل بـnext، وإما تجاوب وترجع."
+  },
+  {
+    "path": "backend/src/middlewares/errorHandler.ts",
+    "lines": 51,
+    "sha256": "0a69d946757fd69de800d3fe1995ddf275a5e4a5bdea244e31ce3ce0b7cd29bc",
+    "explanation": "كيحول الأخطاء لأجوبة HTTP: JSON خاطئ400، duplicate409، JWT401، و500 عام. console logging هنا منفصل عن sanitizeLogs."
+  },
+  {
+    "path": "backend/src/middlewares/index.ts",
+    "lines": 7,
+    "sha256": "e8f3564ea979ccc2df5d63a8dbb44bdcfaa781fb25d701b1d8985bfc1afecd5b",
+    "explanation": "Barrel exports: كيجمع تصدير middlewares باش imports فالمسارات يكونو مختصرين."
+  },
+  {
+    "path": "backend/src/middlewares/rateLimiter.ts",
+    "lines": 53,
+    "sha256": "9c5ece1e7bfd7802ec0baf54175de5d1e2c492252f133f97265e2c3273bab9e5",
+    "explanation": "حد عام افتراضي100 طلب/15 دقيقة، وحد AI20/دقيقة حسب userId. default memory store ماشي عداد موزع."
+  },
+  {
+    "path": "backend/src/middlewares/roles.ts",
+    "lines": 18,
+    "sha256": "cfca21770081ab3fb7ef84aa1555b39ad8221f073be3176571a1ea6032afc125",
+    "explanation": "Middleware دالة كتدخل بين الطلب والتنفيذ. إما تكمل بـnext، وإما تجاوب وترجع."
+  },
+  {
+    "path": "backend/src/middlewares/sanitizeLogs.ts",
+    "lines": 55,
+    "sha256": "afc1c49ec7f4ecd419b39510b508dc9b0e6431287993cd82bc74acb3b8a41106",
+    "explanation": "السجل مخصص لتتبع دور المساعد، والرسائل مخصصة لتاريخ الحوار."
+  },
+  {
+    "path": "backend/src/middlewares/tenant.ts",
+    "lines": 85,
+    "sha256": "1007c5cb3fb9cac56ec7ecabe434e08cec7082224b8f82d684076e197517af52",
+    "explanation": "Middleware دالة كتدخل بين الطلب والتنفيذ. إما تكمل بـnext، وإما تجاوب وترجع."
+  },
+  {
+    "path": "backend/src/middlewares/validate.ts",
+    "lines": 34,
+    "sha256": "0b2b84943c6a617dd32c2724768bec791f19891509501d5679851841123830b2",
+    "explanation": "الطلب الخارجي ما نثقوش فالشكل ديالو. Zod كيرجع بيانات مقبولة أو أخطاء قبل الوصول للخدمة."
+  },
+  {
+    "path": "backend/src/models/AgentLog.ts",
+    "lines": 135,
+    "sha256": "d4d81707af2be0fb5dffebfefa5fee1392d82c8b61997f5cf6172d3275666295",
+    "explanation": "أثر دور AI: السؤال والجواب والأدوات والمصادر والاستهلاك والمدة والرفض. ماشي نفس Message."
+  },
+  {
+    "path": "backend/src/models/Category.ts",
+    "lines": 62,
+    "sha256": "cf3dc97103595f68a06da4335ac0724a5ddd0d39e91115cc07e7a2ef8e76a1b7",
+    "explanation": "صنف منتجات تابع لمتجر، عندو الاسم والوصف. Product كيشير ليه بcategoryId."
+  },
+  {
+    "path": "backend/src/models/Chunk.ts",
+    "lines": 70,
+    "sha256": "6c9bc88ccc66e2c3f19bfb23dc11656a631b23eaaac7b25d676638b9d1a37328",
+    "explanation": "نص مقطع تابع لوثيقة، مع embedding VECTOR(1536) أو NULL. المقاطع بلا embedding مستبعدة من retrieval."
+  },
+  {
+    "path": "backend/src/models/Conversation.ts",
+    "lines": 69,
+    "sha256": "c7b566fd8357e11bd960258d3c46af2cceaea43795ec488e0d36b35883e84ecc",
+    "explanation": "حوار تابع لمستخدم ومتجر، بعنوان وحالة. هو الرابط بين الرسائل."
+  },
+  {
+    "path": "backend/src/models/Customer.ts",
+    "lines": 72,
+    "sha256": "b671d15e85a513bddeebf38de685aa42d8522da1b40da3d0f31b8381aac8f14c",
+    "explanation": "هوية تجارية للزبون فالطلبات. كتتحل من User بواسطة البريد والمتجر فالمسارات الحالية."
+  },
+  {
+    "path": "backend/src/models/Document.ts",
+    "lines": 96,
+    "sha256": "5300935d2623d00da95523bd80bfe950592339f4f92eb7271ed91523e15565a7",
+    "explanation": "metadata ديال الوثيقة: الاسم، uploader، mimeType، status، errorMessage وfileUrl وصفي."
+  },
+  {
+    "path": "backend/src/models/index.ts",
+    "lines": 295,
+    "sha256": "dfa7cba42772708025c125e59ba0b86e3a5b3aed32f078a4abce952589b49afc",
+    "explanation": "Model كيوصف التعامل مع سجل فالكود. Migration كتبدل بنية قاعدة البيانات. Association كتربط النماذج ببعضياتها."
+  },
+  {
+    "path": "backend/src/models/Message.ts",
+    "lines": 66,
+    "sha256": "311dc0646e301e29484951d9e4af508169a2a40e2eb204a9accfd67f4e80d3cf",
+    "explanation": "رسالة داخل محادثة: role وcontent. واجهة الشات كتستعملها باش ترجع التاريخ."
+  },
+  {
+    "path": "backend/src/models/Order.ts",
+    "lines": 75,
+    "sha256": "f76f8f2fd58e876c75de0e61ad78ee8e04a774a5253ba9640ccf9a687b139cfc",
+    "explanation": "رأس الطلب: storeId وcustomerId والحالة والمجموع. ما فيهش عمود عنوان الشحن فهاد النسخة."
+  },
+  {
+    "path": "backend/src/models/OrderItem.ts",
+    "lines": 86,
+    "sha256": "fada8af2d274fba4fab3f5295659f17fcdee28c679614e0c58d7610283bd29e2",
+    "explanation": "سطر شراء: orderId وproductId وcustomerId والكمية وunitPrice. كيحفظ الثمن وقت الشراء."
+  },
+  {
+    "path": "backend/src/models/Product.ts",
+    "lines": 97,
+    "sha256": "ca3faa4a61f74240f40a005e5597f9efe80cf4ee1fc2df9c3f6567b547fd4247",
+    "explanation": "منتوج بثمن ومخزون وSKU وصورة URL وصنف اختياري. المصدر الحي للثمن والمخزون."
+  },
+  {
+    "path": "backend/src/models/RefreshToken.ts",
+    "lines": 58,
+    "sha256": "5925fcd6a2bec6e44b673879b0144c630ca2ef56ff77792a61e38223af698f35",
+    "explanation": "hash ديال refresh مع userId وstoreId وexpiresAt. الحذف كيبطل التجديد بذلك التوكن."
+  },
+  {
+    "path": "backend/src/models/Store.ts",
+    "lines": 46,
+    "sha256": "30977ce0f6152b232ee37b8fb751af74b58cfa334a8c87baebc537dfb2988895",
+    "explanation": "المتجر الجذر. id ديالو كيربط بيانات المتجر. جدول Store نفسه ما خاصوش storeId كمرجع لنفسه."
+  },
+  {
+    "path": "backend/src/models/tenantScope.ts",
+    "lines": 23,
+    "sha256": "bb702260498a902a7fe6d194a46c773072fd796fbeb35643b2c2152c5d01cef6",
+    "explanation": "Model كيوصف التعامل مع سجل فالكود. Migration كتبدل بنية قاعدة البيانات. Association كتربط النماذج ببعضياتها."
+  },
+  {
+    "path": "backend/src/models/User.ts",
+    "lines": 79,
+    "sha256": "f797e49c87e56689c67038cd08eef1aaedbc80637a3e7f5a627ff2874a83f703",
+    "explanation": "حساب الدخول: الاسم والبريد وhash كلمة السر والدور. uniqueness ديال البريد داخل المتجر، ماشي ضروري عبر جميع المتاجر."
+  },
+  {
+    "path": "backend/src/routes/agent.ts",
+    "lines": 840,
+    "sha256": "81f21cd3fad2bfda7e16713fcfb10aa25f3473e814796aadde26cde536a4e2e9",
+    "explanation": "هاد route هو المنظم: هوية → محادثة → حمايات → مصادر → نموذج وأدوات → جواب وسجل."
+  },
+  {
+    "path": "backend/src/routes/auth.ts",
+    "lines": 273,
+    "sha256": "e8d448621510d6c772a761b4d3aba70c377ccdf4e25acbef59c6542b4a477971",
+    "explanation": "الواجهة كترسل الاسم والبريد وكلمة السر، والخادم هو اللي كيحدد المتجر والدور."
+  },
+  {
+    "path": "backend/src/routes/categories.ts",
+    "lines": 200,
+    "sha256": "248c1db5c5cdcb5a5f9844dcee17e7da4f3e84c3bb8d688de4a168f891457041",
+    "explanation": "الإدارة كتحتاج التحقق من الدور والمتجر والمدخلات، حتى إلا الواجهة عطلات الأزرار لغير المسؤول."
+  },
+  {
+    "path": "backend/src/routes/documents.ts",
+    "lines": 388,
+    "sha256": "f37a684a9673519ce57f3c216e5eae8a19d9875b1b5dcba57c1329bc08d9a928",
+    "explanation": "الملف المرفوع كيتحول لنص، ثم مقاطع، ثم embeddings، ثم سجلات قابلة للبحث."
+  },
+  {
+    "path": "backend/src/routes/orders.ts",
+    "lines": 459,
+    "sha256": "dce9e210b62f7ea61d86eeda6a90a345ad29e3d4c44b7da4e83b0c03a2c49d8c",
+    "explanation": "POST /api/orders كيحتاج confirmed:true وكيحسب الثمن من القاعدة."
+  },
+  {
+    "path": "backend/src/routes/products.ts",
+    "lines": 327,
+    "sha256": "252eece2df7507575020500d84743c37571ca48f7458830e04dee4a585b4e85c",
+    "explanation": "هاد المسار كيحول الفلاتر اللي فالواجهة لشروط استعلام محددة."
+  },
+  {
+    "path": "backend/src/schemas/agentTools.ts",
+    "lines": 74,
+    "sha256": "5cd592b1412efc0fc6091225cedd35a6bd6faca8c9a013e891e0eda9b87dcabe",
+    "explanation": "هاد الطبقة كتحدد شنو يقدر المساعد يدير وبأي مدخلات."
+  },
+  {
+    "path": "backend/src/schemas/auth.ts",
+    "lines": 48,
+    "sha256": "a5818303af02321bb8604d69a925c6b854fe1c24820f6fbff66d7d5947df9054",
+    "explanation": "الطلب الخارجي ما نثقوش فالشكل ديالو. Zod كيرجع بيانات مقبولة أو أخطاء قبل الوصول للخدمة."
+  },
+  {
+    "path": "backend/src/schemas/category.ts",
+    "lines": 28,
+    "sha256": "e3f7a50a80cfd0421b1433face43b9b5ceb05f2f380a45f25ac0aac9df51db25",
+    "explanation": "الطلب الخارجي ما نثقوش فالشكل ديالو. Zod كيرجع بيانات مقبولة أو أخطاء قبل الوصول للخدمة."
+  },
+  {
+    "path": "backend/src/schemas/order.ts",
+    "lines": 38,
+    "sha256": "fee3588ce3b76c86f7dd4feb9b74c2b7c2e9beaa9490436f2a797ad13a6cd3b8",
+    "explanation": "الطلب الخارجي ما نثقوش فالشكل ديالو. Zod كيرجع بيانات مقبولة أو أخطاء قبل الوصول للخدمة."
+  },
+  {
+    "path": "backend/src/schemas/product.ts",
+    "lines": 48,
+    "sha256": "b48c7baf9cefbbd754f85392ab6695bbdee369d710b2c36586ebf6b45cedab19",
+    "explanation": "الطلب الخارجي ما نثقوش فالشكل ديالو. Zod كيرجع بيانات مقبولة أو أخطاء قبل الوصول للخدمة."
+  },
+  {
+    "path": "backend/src/scripts/applyPgvectorSql.ts",
+    "lines": 23,
+    "sha256": "b1d393697c674915e1eaaef85a11da6bf0843f51d3ef0b083d4f62b97000c13a",
+    "explanation": "هنا كنجهزو البيانات والبنية باش API تلقى شنو تخدم عليه."
+  },
+  {
+    "path": "backend/src/scripts/test-agent-cost-limits.ts",
+    "lines": 58,
+    "sha256": "6e7456aea1497562bdca1c445219cbb84a90b776ff2820d1948b251e6970bb1d",
+    "explanation": "Arrange تجهيز الحالة، Act تنفيذ العملية، Assert مقارنة النتيجة بالمتوقع."
+  },
+  {
+    "path": "backend/src/scripts/test-agent-tools.ts",
+    "lines": 196,
+    "sha256": "bce23be827f3767637e7d20f47bad40b1d1a7f51fd6743330c60c20ae64efeed",
+    "explanation": "Arrange تجهيز الحالة، Act تنفيذ العملية، Assert مقارنة النتيجة بالمتوقع."
+  },
+  {
+    "path": "backend/src/scripts/test-auth-tenant.ts",
+    "lines": 194,
+    "sha256": "0066f95dd9db2fec33295aab4bd73b02dec49d8c50ca0dd053a9b12e8f8bdc02",
+    "explanation": "Arrange تجهيز الحالة، Act تنفيذ العملية، Assert مقارنة النتيجة بالمتوقع."
+  },
+  {
+    "path": "backend/src/scripts/test-guardrails.ts",
+    "lines": 66,
+    "sha256": "3040634217bbdf63d38b0c76bccf156b02d95dce2fab9a32d434b24150a5ed4f",
+    "explanation": "Arrange تجهيز الحالة، Act تنفيذ العملية، Assert مقارنة النتيجة بالمتوقع."
+  },
+  {
+    "path": "backend/src/scripts/test-llm.ts",
+    "lines": 163,
+    "sha256": "21dee9a5d5c5170f4043778fd186bb8b82ebb3c30fbf1e3b7329ca37377302b6",
+    "explanation": "Arrange تجهيز الحالة، Act تنفيذ العملية، Assert مقارنة النتيجة بالمتوقع."
+  },
+  {
+    "path": "backend/src/scripts/test-n8n-notifications.ts",
+    "lines": 59,
+    "sha256": "710455a9406397075f876efe04c5960a67a20ea3b83b201605d173d05afb9367",
+    "explanation": "Arrange تجهيز الحالة، Act تنفيذ العملية، Assert مقارنة النتيجة بالمتوقع."
+  },
+  {
+    "path": "backend/src/scripts/test-order-confirmation.ts",
+    "lines": 299,
+    "sha256": "601aeeed450e5b964e15b356baf7fc41d64f869817658323dd8d243775b79667",
+    "explanation": "Arrange تجهيز الحالة، Act تنفيذ العملية، Assert مقارنة النتيجة بالمتوقع."
+  },
+  {
+    "path": "backend/src/scripts/test-read-tools.ts",
+    "lines": 263,
+    "sha256": "240c5f16bee66d1c2c7abbd1b158583c52b777358ae3371c1c9ddc14d04c40bb",
+    "explanation": "Arrange تجهيز الحالة، Act تنفيذ العملية، Assert مقارنة النتيجة بالمتوقع."
+  },
+  {
+    "path": "backend/src/seed.ts",
+    "lines": 202,
+    "sha256": "8782ceca02c66e50c9c76f125148651123549069e4cdcb92192ba98ea656bf64",
+    "explanation": "وجود Document ماشي هو وجود معرفة مفهرسة وقابلة للاسترجاع."
+  },
+  {
+    "path": "backend/src/server.ts",
+    "lines": 22,
+    "sha256": "e0d876cb6a15bd2d1adf856c147e1b88e538be273b7b829f5b8bdf2ee065356c",
+    "explanation": "اتصال قاعدة البيانات والشبكة كيحتاجو وقت. Promise كتمثل نتيجة غادي تجي من بعد."
+  },
+  {
+    "path": "backend/src/services/agentTools.ts",
+    "lines": 711,
+    "sha256": "90adccd4dc84be4ce387c3254f836c89adf96c63a76c29f87d6ab23a3d92d89f",
+    "explanation": "اقتراح الأداة من النموذج كيرجع للخادم؛ الخادم ينفذ ويرجع النتيجة للنموذج."
+  },
+  {
+    "path": "backend/src/services/guardrails.ts",
+    "lines": 322,
+    "sha256": "b2df5ba67ae45ac372882096d9774dece6146f4cf3cf843a874b01dda2d8044d",
+    "explanation": "هاد الملف فيه قواعد نصية للرفض وتنقية السياق ومراجعة الجواب."
+  },
+  {
+    "path": "backend/src/services/llm.ts",
+    "lines": 253,
+    "sha256": "05f2c47df5871aa66fa5f92ef02e1891744482c649a9e08c9070f348045e5c60",
+    "explanation": "هاد الملف كيجمع إعدادات الاتصال وتعليمات المساعد وآلية قراءة streaming من المزود."
+  },
+  {
+    "path": "backend/src/services/mcpShipmentClient.ts",
+    "lines": 59,
+    "sha256": "4aa1d4480b31c8c6d6790399752e60f330c5c6751027019c14e71be673096661",
+    "explanation": "getShipmentStatusTool كيتأكد من صاحب الطلب قبل التواصل مع خدمة التتبع."
+  },
+  {
+    "path": "backend/src/services/n8nNotifications.ts",
+    "lines": 79,
+    "sha256": "72272d0bc4e42c4e795fafd2c01176cc271f8d2c3473449c3fa9a87c4a69b9cf",
+    "explanation": "إشعار المسؤول عملية خارجية اختيارية، منفصلة على نجاح معاملة الشراء."
+  },
+  {
+    "path": "backend/src/services/orderConfirmation.ts",
+    "lines": 474,
+    "sha256": "52cc98c2e725897a9380b4bcac55ba236da1ed2ad7016f8c0bb73baef5f6b8a4",
+    "explanation": "initiateCreateOrderRecap كتقرا المعطيات وتحضر ملخص، وتخزن نية العملية مؤقتاً."
+  },
+  {
+    "path": "backend/src/services/rag.ts",
+    "lines": 184,
+    "sha256": "d5c447806a39bdd39c9be00fb265eb89c12225dad407adfa411d45a95cc11736",
+    "explanation": "هاد الدالة كتخدم بالنص فقط، بلا database وبلا LLM."
+  },
+  {
+    "path": "backend/src/types/express.d.ts",
+    "lines": 12,
+    "sha256": "7c073b1f740ea19ca907ed4b2d8b955d82998cc0ff97eac1d72242575fba4953",
+    "explanation": "توسيع TypeScript لأنواع Express باش req.user وreq.storeId يكونو معروفين للمحلل؛ ما كيعمرهمش وقت التشغيل."
+  },
+  {
+    "path": "backend/tsconfig.json",
+    "lines": 16,
+    "sha256": "f54f89d0591ae6a408a4f341639ba3f412d93e6a51ca914dcd924b253ac4f60c",
+    "explanation": "كيفاش TypeScript ديال الخادم كيتحول لJavaScript ومكان الخرج."
+  },
+  {
+    "path": "docker-compose.yml",
+    "lines": 44,
+    "sha256": "95a7cc6709c759aa9393565c4439369f699fd076e8fed99fdf19a8043f70aef5",
+    "explanation": "الصورة كتجمع التطبيق، وCompose كيربطه بقاعدة البيانات."
+  },
+  {
+    "path": "mobile/app/(auth)/_layout.tsx",
+    "lines": 12,
+    "sha256": "5e7864e48a36bf4f10103c983d777db5a8810e473b6e3c3fc033a7ab2fca083f",
+    "explanation": "Expo Router كيربط بنية الملفات بالشاشات، وRootLayout كيتابع حالة الجلسة."
+  },
+  {
+    "path": "mobile/app/(auth)/login.tsx",
+    "lines": 290,
+    "sha256": "d2f80c327c424bd8f81cfd1d9067cfbfc6af0f067ef27cd546b637d0c96ee871",
+    "explanation": "Component دالة كتنتج واجهة. State بيانات كتبدل العرض، وprops مدخلات جاية من component آخر."
+  },
+  {
+    "path": "mobile/app/(auth)/register.tsx",
+    "lines": 344,
+    "sha256": "c6686ae5f0b1d86ddee31165514b3b16c9df86f712f945f44cd1dcabb5eec0e3",
+    "explanation": "ملف مساعد داخل (auth). قرا declarations والمقتطف باش تربط الدور ديالو بالمسار المشروح قبل."
+  },
+  {
+    "path": "mobile/app/(tabs)/_layout.tsx",
+    "lines": 73,
+    "sha256": "1ebfc8ee76bfe3facc58e7761dfe5f51ecf49f27c6c38d0321d580e59d0f3354",
+    "explanation": "Expo Router كيربط بنية الملفات بالشاشات، وRootLayout كيتابع حالة الجلسة."
+  },
+  {
+    "path": "mobile/app/(tabs)/admin-agent-logs.tsx",
+    "lines": 249,
+    "sha256": "c59a1e9b2aa81bcd7fb4b475f8e1b78c7f18cb5b583569a26a47cfa58c566e28",
+    "explanation": "كل شاشة كتراجع ADMIN فالواجهة وكتتواصل مع endpoints محمية فالخادم."
+  },
+  {
+    "path": "mobile/app/(tabs)/admin-catalogue.tsx",
+    "lines": 238,
+    "sha256": "124307128a885b358de0158b3a5b02166e0d846948c79aa92d9da922a8f7d7bf",
+    "explanation": "الفورمولير كيحتافظ بالنصوص، وكيحول الأرقام قبل الإرسال."
+  },
+  {
+    "path": "mobile/app/(tabs)/admin-documents.tsx",
+    "lines": 195,
+    "sha256": "134583f1d51ac702ae079925c373605af33cad7869499543f73bd611703c24d4",
+    "explanation": "كل شاشة كتراجع ADMIN فالواجهة وكتتواصل مع endpoints محمية فالخادم."
+  },
+  {
+    "path": "mobile/app/(tabs)/chat.tsx",
+    "lines": 1740,
+    "sha256": "f3859533e3c25ca759cf3e385864e3cbe80bc5ef2737ab3e7e585057bdc94dc7",
+    "explanation": "الشاشة كتدير state ديال المحادثة، بينما الخادم هو اللي كينفذ الخدمات."
+  },
+  {
+    "path": "mobile/app/(tabs)/index.tsx",
+    "lines": 527,
+    "sha256": "4bd233247832f89a6fe728e34b25ba0fada10fbd18d04d2f4d98ec482442357c",
+    "explanation": "الشاشة كتعرض وتجمع الاختيارات، والـstore كيرسل الفلاتر وكيحتافظ بالنتائج."
+  },
+  {
+    "path": "mobile/app/(tabs)/orders.tsx",
+    "lines": 506,
+    "sha256": "8f80e5c5218bf4b8787d7226ad78616711e8f452e48ff785dfbb9be0a6761218",
+    "explanation": "كل شاشة كتربط state وعناصر العرض بدالة أو API واضحة."
+  },
+  {
+    "path": "mobile/app/(tabs)/profile.tsx",
+    "lines": 386,
+    "sha256": "767efedb6b9ce8ffecf05898cbc8b63bc9e50a62405a22201b0461803c7c0509",
+    "explanation": "كل شاشة كتربط state وعناصر العرض بدالة أو API واضحة."
+  },
+  {
+    "path": "mobile/app/+html.tsx",
+    "lines": 21,
+    "sha256": "eb82be01924caac1855e31e1f1b13f6c5709d4487cf9bcf2fad5a60dedc77745",
+    "explanation": "كل شاشة كتربط state وعناصر العرض بدالة أو API واضحة."
+  },
+  {
+    "path": "mobile/app/+not-found.tsx",
+    "lines": 42,
+    "sha256": "7f3d19c54b434f55c53e06ab135060998a8385d5397cab58cc1fba68566b4de2",
+    "explanation": "كل شاشة كتربط state وعناصر العرض بدالة أو API واضحة."
+  },
+  {
+    "path": "mobile/app/_layout.tsx",
+    "lines": 112,
+    "sha256": "4b33e7f6d7eda41b140b9468f1fcd6d073684c415c78bf58a9999523fb960c13",
+    "explanation": "Expo Router كيربط بنية الملفات بالشاشات، وRootLayout كيتابع حالة الجلسة."
+  },
+  {
+    "path": "mobile/app/modal.tsx",
+    "lines": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "explanation": "كل شاشة كتربط state وعناصر العرض بدالة أو API واضحة."
+  },
+  {
+    "path": "mobile/app/product/[id].tsx",
+    "lines": 621,
+    "sha256": "247973479e232d26e29511e2367e93c2ea59581295cf10d75473c303a1e6c534",
+    "explanation": "الشاشة كتعرض وتجمع الاختيارات، والـstore كيرسل الفلاتر وكيحتافظ بالنتائج."
+  },
+  {
+    "path": "mobile/app.json",
+    "lines": 46,
+    "sha256": "366ec07ad50bb61e9c0ac03dfb07adaeda81b4f9c0ccf8cc5a7b9e0f8a4db8b8",
+    "explanation": "إعداد Expo: الاسم والأيقونة وsplash والمنصات والplugins. ماشي كود معالجة طلبات."
+  },
+  {
+    "path": "mobile/components/index.ts",
+    "lines": 1,
+    "sha256": "a8b85c15251a595d15f3bb731ed1706d3c48425814faa7c6c5808135439955dc",
+    "explanation": "نقطة export للمكونات حسب الملف الحالي، باش تسهل imports."
+  },
+  {
+    "path": "mobile/constants/Colors.ts",
+    "lines": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "explanation": "تعريف ألوان إضافي. تحقق واش الشاشة كتستعمل هاد الملف أو theme/tokens قبل أي تعديل لون."
+  },
+  {
+    "path": "mobile/package.json",
+    "lines": 41,
+    "sha256": "c03b07867e6096fe8c6b75472bd47a524c8d076566aeee9ef932a15477e6c191",
+    "explanation": "npm run كيشغل الأمر المسجل تحت scripts، وماشي جميع أسماء scripts اختبارات."
+  },
+  {
+    "path": "mobile/src/api/agentChat.ts",
+    "lines": 234,
+    "sha256": "a06c1551131a1136dbf844a9877baef05efa33df2dd246cddbffcd53ad8d88dd",
+    "explanation": "الاتصال واحد، والخادم كيكتب فيه أحداث JSON مفصولة بسطرين."
+  },
+  {
+    "path": "mobile/src/api/client.ts",
+    "lines": 127,
+    "sha256": "51fb2cda84f80ef7fb36e7789a2021a43717e008b67ffdb057dc69f8e881fdc7",
+    "explanation": "باش ما نكتبوش Authorization ومعالجة401 فكل شاشة، client كيجمعهم."
+  },
+  {
+    "path": "mobile/src/auth/tokenStorage.ts",
+    "lines": 65,
+    "sha256": "b45d0704e81f4b9d5c4b6dc7127f93a630bc064974d619a68ae72bd7da5837c9",
+    "explanation": "Zustand كيجمع حالة الجلسة والدوال اللي كتغيرها فبلاصة واحدة."
+  },
+  {
+    "path": "mobile/src/components/BrandHeader.tsx",
+    "lines": 44,
+    "sha256": "7d2c8f1d3a75924aa8229c22339845b7cc4e0193688a30bf7774a30478dddf4b",
+    "explanation": "القيم المشتركة كتخلي الشاشات تستعمل نفس اللغة البصرية."
+  },
+  {
+    "path": "mobile/src/components/Button.tsx",
+    "lines": 156,
+    "sha256": "fcc3f32541283d532ea0a02633cee431d7c2671739a2ed6a6449aa326c05c22c",
+    "explanation": "TypeScript كيوصف البيانات، وJavaScript هو السلوك اللي كيتنفذ. TSX كيخلينا نكتب واجهة React مع الكود."
+  },
+  {
+    "path": "mobile/src/components/Card.tsx",
+    "lines": 50,
+    "sha256": "05d28e52fea3b911a548ebbfb8893edc6336c04c6fadfb1fd4d841e0c3c070bb",
+    "explanation": "القيم المشتركة كتخلي الشاشات تستعمل نفس اللغة البصرية."
+  },
+  {
+    "path": "mobile/src/components/EmptyState.tsx",
+    "lines": 68,
+    "sha256": "3ce599dee82cd22441c65aeb8687ae5d6d9fecbbe2e6dc75bb016161819c01b4",
+    "explanation": "القيم المشتركة كتخلي الشاشات تستعمل نفس اللغة البصرية."
+  },
+  {
+    "path": "mobile/src/components/ErrorState.tsx",
+    "lines": 64,
+    "sha256": "865fc04547e455f2cf6591b507b2e3c95a00e093e77fbaa813f009a6f53b7821",
+    "explanation": "القيم المشتركة كتخلي الشاشات تستعمل نفس اللغة البصرية."
+  },
+  {
+    "path": "mobile/src/components/index.ts",
+    "lines": 7,
+    "sha256": "c90c174280e6807dedac5601257ac1f77ca9cf7bd33fd16238eb58dd9c421376",
+    "explanation": "كيجمع exports ديال المكونات المشتركة."
+  },
+  {
+    "path": "mobile/src/components/Input.tsx",
+    "lines": 97,
+    "sha256": "6e9d56a5579b38944705f1c502ee7bdba397d5dad9ca9217f19871dc9d49596e",
+    "explanation": "القيم المشتركة كتخلي الشاشات تستعمل نفس اللغة البصرية."
+  },
+  {
+    "path": "mobile/src/components/Loader.tsx",
+    "lines": 40,
+    "sha256": "29556d0aa299aa5eccbea1e4a9dba5ad1a599cdb60006a4ab3b7435aa6d09c20",
+    "explanation": "القيم المشتركة كتخلي الشاشات تستعمل نفس اللغة البصرية."
+  },
+  {
+    "path": "mobile/src/config/api.ts",
+    "lines": 10,
+    "sha256": "de955e118de564ee2710c119943329a8ad98722c712990a40e3bb50f92b10c46",
+    "explanation": "باش ما نكتبوش Authorization ومعالجة401 فكل شاشة، client كيجمعهم."
+  },
+  {
+    "path": "mobile/src/stores/authStore.ts",
+    "lines": 221,
+    "sha256": "9bb3f31991baff9d5b2a1570654e350fbf5727e1f64e7747dff55fe245920e1f",
+    "explanation": "Zustand كيجمع حالة الجلسة والدوال اللي كتغيرها فبلاصة واحدة."
+  },
+  {
+    "path": "mobile/src/stores/catalogStore.ts",
+    "lines": 210,
+    "sha256": "b7f3adbb6812cb4d2d0e131e428b0eb252ddc5380828214c644b2a9c8f3b2036",
+    "explanation": "الشاشة كتعرض وتجمع الاختيارات، والـstore كيرسل الفلاتر وكيحتافظ بالنتائج."
+  },
+  {
+    "path": "mobile/src/theme/tokens.ts",
+    "lines": 67,
+    "sha256": "7f300173ff01b675955439bb9d42a6dd7f6153f99c2ac5d275ace11368ea5846",
+    "explanation": "القيم المشتركة كتخلي الشاشات تستعمل نفس اللغة البصرية."
+  },
+  {
+    "path": "mobile/tsconfig.json",
+    "lines": 17,
+    "sha256": "e8e9605c3b1a521e797d6d3a5fd271121fdfbd0aab0904be0873469bc0347a77",
+    "explanation": "قواعد تحليل TypeScript وalias المسارات فالموبايل."
+  }
+]
